@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Flux",
+    "index": 14,
+    "core_function": "Transfer Throughput",
+    "description": "The volume and speed of information or energy passing through the identity’s boundaries; measures system bandwidth and throughput."
+  },
+  "operational_constants": {
+    "throughput_coefficient": 0.7,
+    "latency_tolerance": 0.2,
+    "burst_capacity": 0.6
+  },
+  "logic_mechanics": {
+    "transfer_rate": {
+      "formula": "output = input * (1 + flux)",
+      "impact": "High Flux increases throughput and allows faster propagation of task signals."
+    },
+    "flow_stability": {
+      "formula": "if flux > depth: state = turbulence",
+      "impact": "Detects potential overload when transfer exceeds available buffer capacity."
+    }
+  },
+  "failure_modes": {
+    "freeze": {
+      "condition": "Flux == 0",
+      "result": "The agent becomes frozen regardless of Force or Willpower."
+    },
+    "overload": {
+      "condition": "Flux > Depth && Depth < 0.5",
+      "result": "Information enters faster than the agent can process, causing turbulence and instability."
+    }
+  }
+}

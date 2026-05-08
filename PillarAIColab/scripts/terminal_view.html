@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw CrowNest Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Courier New', 'Consolas', monospace;
+            font-size: 14px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Skip to main content for accessibility */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #bf00ff;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+            text-decoration: none;
+        }
+        
+        .skip-link:focus {
+            top: 0;
+        }
+        
+        #terminal-header {
+            background-color: #2d2d2d;
+            padding: 10px 20px;
+            border-bottom: 2px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        #terminal-header h1 {
+            font-size: 16px;
+            color: #00ffff;
+            margin: 0;
+        }
+        
+        .concept-uid {
+            font-size: 11px;
+            color: #aaa;
+            background: #333;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .concept-uid span {
+            display: inline-block;
+        }
+        
+        .label {
+            color: #888;
+        }
+        
+        .value {
+            color: #ffa500;
+            font-weight: bold;
+        }
+        
+        #terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #1a1a1a;
+            scroll-behavior: smooth;
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            body {
+                background-color: black;
+                color: white;
+            }
+            
+            .log-entry {
+                border-bottom: 1px solid white;
+            }
+        }
+        
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            #terminal-output {
+                scroll-behavior: auto;
+            }
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        
+        .timestamp {
+            color: #666;
+            min-width: 80px;
+            font-size: 12px;
+        }
+        
+        .user-badge {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .user-ADMIN .user-badge {
+            background-color: #bf00ff;
+            color: white;
+        }
+        
+        .user-SYS .user-badge {
+            background-color: #00ffff;
+            color: black;
+        }
+        
+        .user-PROJECT_MANAGER .user-badge {
+            background-color: #0066ff;
+            color: white;
+        }
+        
+        .user-ROLES .user-badge {
+            background-color: #00ff00;
+            color: black;
+        }
+        
+        .user-AGENT .user-badge {
+            background-color: #ffff00;
+            color: black;
+        }
+        
+        .user-USER .user-badge {
+            background-color: #555;
+            color: white;
+        }
+        
+        .content {
+            flex: 1;
+        }
+        
+        .content p {
+            margin: 0 0 8px 0;
+        }
+        
+        .content h1 {
+            font-size: 16px;
+            margin: 10px 0 5px 0;
+            color: #00ffff;
+        }
+        
+        .content h2 {
+            font-size: 14px;
+            margin: 8px 0 4px 0;
+            color: #00ff00;
+        }
+        
+        .content ul, .content ol {
+            margin: 5px 0 5px 20px;
+        }
+        
+        .content li {
+            margin: 2px 0;
+        }
+        
+        .content pre {
+            background: #252525;
+            padding: 10px;
+            border-left: 3px solid #555;
+            margin: 5px 0;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        
+        .content code {
+            background: #333;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-family: 'Consolas', monospace;
+        }
+        
+        .pillar-uid {
+            font-size: 10px;
+            color: #ffa500;
+            margin-left: 10px;
+            font-style: italic;
+        }
+        
+        #terminal-input-area {
+            background-color: #2d2d2d;
+            padding: 10px;
+            border-top: 2px solid #444;
+            display: flex;
+            gap: 10px;
+        }
+        
+        #command-input {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        
+        #command-input:focus {
+            outline: 2px solid #00ffff;
+            outline-offset: -1px;
+        }
+        
+        #send-btn {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        #send-btn:hover {
+            background: #00cccc;
+        }
+        
+        #send-btn:focus {
+            outline: 2px solid #00ffff;
+            outline-offset: 2px;
+        }
+        
+        .login-hint {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+            padding: 8px;
+            background: #252525;
+            border-radius: 4px;
+        }
+        
+        .aria-live {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <a href="#terminal-output" class="skip-link">Skip to terminal output</a>
+    
+    <header id="terminal-header" role="banner">
+        <h1>🔷 OpenClaw CrowNest Terminal</h1>
+        <div class="concept-uid" role="region" aria-label="CONCEPT UID Information">
+            <span><span class="label">User:</span> <span class="value" id="current-user">SYS</span></span>
+            <span><span class="label">Concept:</span> <span class="value" id="concept">ai_cloud</span></span>
+            <span><span class="label">PID:</span> <span class="value" id="pid">SYS</span></span>
+            <span><span class="label">SID:</span> <span class="value" id="sid">ENV</span></span>
+            <span><span class="label">HID:</span> <span class="value" id="hid">H_SYS</span></span>
+            <span><span class="label">Pillar:</span> <span class="value" id="pillar-state">Loading...</span></span>
+        </div>
+    </header>
+    
+    <main id="terminal-output" role="log" aria-live="polite" aria-atomic="false" tabindex="0">
+        <!-- Terminal output will be inserted here -->
+    </main>
+    
+    <div id="terminal-input-area" role="form" aria-label="Command input">
+        <input type="text" 
+               id="command-input" 
+               placeholder="Type command... (LOGIN ADMIN PapaMoshi or LOGIN SYS)" 
+               autofocus 
+               aria-label="Enter command">
+        <button id="send-btn">Send</button>
+    </div>
+    
+    <div class="login-hint" role="note">
+        💡 Login: Type "LOGIN ADMIN PapaMoshi" (purple) | "LOGIN SYS" (cyan) | "LOGIN PROJECT_MANAGER" (blue) | "LOGIN ROLES" (green) | "LOGIN AGENT" (yellow) | "LOGIN USER" (white)
+    </div>
+    
+    <!-- ARIA live region for screen readers -->
+    <div id="aria-live" class="aria-live" aria-live="assertive" aria-atomic="true"></div>
+
+    <script>
+        const terminalOutput = document.getElementById('terminal-output');
+        const commandInput = document.getElementById('command-input');
+        const sendBtn = document.getElementById('send-btn');
+        const currentUser = document.getElementById('current-user');
+        const conceptSpan = document.getElementById('concept');
+        const pidSpan = document.getElementById('pid');
+        const sidSpan = document.getElementById('sid');
+        const hidSpan = document.getElementById('hid');
+        const pillarState = document.getElementById('pillar-state');
+        const ariaLive = document.getElementById('aria-live');
+        
+        let lastMessageId = 0;
+        let pollInterval;
+        
+        // Accessibility: Announce new messages to screen readers
+        function announceToScreenReader(text) {
+            ariaLive.textContent = text;
+            setTimeout(() => { ariaLive.textContent = ''; }, 1000);
+        }
+        
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const parts = timestamp.split('T');
+            if (parts.length > 1) {
+                return parts[1].split('.')[0];  // HH:MM:SS
+            }
+            return timestamp;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function renderMarkdown(content) {
+            // Simple markdown rendering
+            let html = escapeHtml(content);
+            
+            // Code blocks
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            
+            // Headers
+            html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+            
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Italic
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Lists
+            html = html.replace(/^[\*\-] (.*$)/gm, '<li>$1</li>');
+            
+            // Paragraphs
+            html = html.split('\n\n').map(p => `<p>${p}</p>`).join('');
+            
+            return html;
+        }
+        
+        function appendLogEntry(msg) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry user-${msg.user || 'USER'}`;
+            entry.setAttribute('role', 'article');
+            entry.setAttribute('aria-label', `${msg.aria_label || msg.user + ' message'}`);
+            
+            const time = formatTimestamp(msg.timestamp);
+            const userClass = msg.user || 'USER';
+            
+            let contentHtml = '';
+            if (msg.markdown && msg.content_html) {
+                contentHtml = msg.content_html;
+            } else if (msg.has_code) {
+                contentHtml = `<pre><code>${escapeHtml(msg.content)}</code></pre>`;
+            } else {
+                contentHtml = renderMarkdown(msg.content);
+            }
+            
+            // Pillar UID
+            let pillarHtml = '';
+            if (msg.pillar_uid) {
+                pillarHtml = `<span class="pillar-uid">${msg.pillar_uid}</span>`;
+            }
+            
+            entry.innerHTML = `
+                <span class="timestamp" aria-hidden="true">${time}</span>
+                <span class="user-badge">${userClass}</span>
+                <div class="content">${contentHtml}${pillarHtml}</div>
+            `;
+            
+            terminalOutput.appendChild(entry);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            
+            // Announce to screen readers
+            announceToScreenReader(`${userClass}: ${msg.content.substring(0, 100)}`);
+        }
+        
+        async function pollLogs() {
+            try {
+                const response = await fetch(`/api/log?since=${lastMessageId}`);
+                const data = await response.json();
+                
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        appendLogEntry(msg);
+                        lastMessageId = msg.id + 1;
+                    });
+                }
+                
+                // Update CONCEPT UID
+                if (data.concept_uid) {
+                    currentUser.textContent = data.concept_uid.user || 'SYS';
+                    conceptSpan.textContent = data.concept_uid.concept || 'unknown';
+                    pidSpan.textContent = data.concept_uid.pid || 'SYS';
+                    sidSpan.textContent = data.concept_uid.sid || 'ENV';
+                    hidSpan.textContent = data.concept_uid.hid || 'H_SYS';
+                }
+                
+                // Update Pillar State
+                if (data.pillar_uid) {
+                    pillarState.textContent = data.pillar_uid;
+                }
+                
+            } catch (error) {
+                console.error('Poll error:', error);
+            }
+        }
+        
+        async function sendCommand() {
+            const command = commandInput.value.trim();
+            if (!command) return;
+            
+            try {
+                const response = await fetch('/api/input', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({input: command})
+                });
+                
+                const data = await response.json();
+                commandInput.value = '';
+                
+                // Update UI immediately for login
+                if (data.user) {
+                    currentUser.textContent = data.user;
+                    if (data.pid) {
+                        pidSpan.textContent = data.pid;
+                        sidSpan.textContent = data.sid;
+                        hidSpan.textContent = data.hid;
+                        conceptSpan.textContent = data.user === 'ADMIN' ? 'human' : 
+                                                 data.user === 'SYS' ? 'ai_cloud' :
+                                                 data.user === 'PROJECT_MANAGER' ? 'management' :
+                                                 data.user === 'ROLES' ? 'organization' :
+                                                 data.user === 'AGENT' ? 'ai_llm_coder' : 'human';
+                    }
+                    
+                    // Announce login
+                    announceToScreenReader(`Logged in as ${data.user}`);
+                }
+                
+            } catch (error) {
+                console.error('Send error:', error);
+            }
+        }
+        
+        sendBtn.addEventListener('click', sendCommand);
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendCommand();
+        });
+        
+        // Start polling
+        pollInterval = setInterval(pollLogs, 1000);
+        pollLogs();  // Initial poll
+        
+        // Focus input on load
+        commandInput.focus();
+    </script>
+</body>
+</html>

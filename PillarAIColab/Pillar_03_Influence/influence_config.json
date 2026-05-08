@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Influence",
+    "index": 3,
+    "core_function": "Communication / Culture",
+    "description": "Propagated impact and signaling; the capacity to alter systems without direct force."
+  },
+  "operational_constants": {
+    "propagation_radius": 5.0,
+    "signal_decay": 0.01,
+    "broadcast_frequency": 1.0
+  },
+  "logic_mechanics": {
+    "neighbor_modification": {
+      "formula": "neighbor.internal_state += e.influence * influence_kernel(e, neighbor)",
+      "impact": "Determines how much one entity can shift the state of its neighbors."
+    },
+    "network_amplification": {
+      "formula": "P_e_star = P_e * (1 + beta * R_l + gamma * I_n)",
+      "impact": "Scales production output based on the unit's reach and connectivity."
+    }
+  },
+  "failure_modes": {
+    "isolation": {
+      "condition": "Influence < 0.1",
+      "result": "The unit acts in a vacuum; its successes and failures do not propagate to the system."
+    },
+    "manipulation": {
+      "condition": "Influence > 0.8 && Integrity < 0.3",
+      "result": "Unit spreads distorted or self-serving states, compromising the autonomy of the network."
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "TestPredator",
+  "description": "Fast, stealthy, high-force creature with hunting instincts",
+  "pillars": {
+    "Awareness": 0.8,
+    "Willpower": 0.7,
+    "Force": 0.9,
+    "Influence": 0.3,
+    "Resistance": 0.6,
+    "Integrity": 0.7,
+    "Cohesion": 0.2,
+    "Relation": 0.3,
+    "Presence": 0.6,
+    "Warmth": 0.2,
+    "Memory": 0.6,
+    "Attraction": 0.8,
+    "Harm": 0.7,
+    "Distortion": 0.2
+  },
+  "skelly_config": {
+    "scale": 1.4,
+    "bones": [
+      {"name": "spine", "start": [0, 0, 0], "end": [0, 0, 14], "radius": 0.5, "flexibility": 0.8},
+      {"name": "head", "start": [0, 0, 14], "end": [0, 3, 18], "radius": 0.4, "flexibility": 0.9},
+      {"name": "jaw", "start": [0, 0, 18], "end": [0, -2, 16], "radius": 0.2, "flexibility": 0.95},
+      {"name": "limb_fl", "start": [0, 0, 10], "end": [-3, 0, 8], "radius": 0.3, "flexibility": 0.6},
+      {"name": "limb_fr", "start": [0, 0, 10], "end": [3, 0, 8], "radius": 0.3, "flexibility": 0.6},
+      {"name": "limb_rl", "start": [0, 0, 4], "end": [-3, 0, 2], "radius": 0.3, "flexibility": 0.6},
+      {"name": "limb_rr", "start": [0, 0, 4], "end": [3, 0, 2], "radius": 0.3, "flexibility": 0.6},
+      {"name": "tail", "start": [0, 0, 0], "end": [0, 0, -8], "radius": 0.25, "flexibility": 0.9}
+    ],
+    "muscles": [
+      {"name": "spine_flex", "bone": "spine", "activation": 0.6, "strands": 8, "radius": 0.15},
+      {"name": "jaw_clench", "bone": "jaw", "activation": 0.4, "strands": 4, "radius": 0.1},
+      {"name": "limb_movers_fl", "bone": "limb_fl", "activation": 0.9, "strands": 4, "radius": 0.12},
+      {"name": "limb_movers_fr", "bone": "limb_fr", "activation": 0.9, "strands": 4, "radius": 0.12},
+      {"name": "limb_movers_rl", "bone": "limb_rl", "activation": 0.9, "strands": 4, "radius": 0.12},
+      {"name": "limb_movers_rr", "bone": "limb_rr", "activation": 0.9, "strands": 4, "radius": 0.12}
+    ],
+    "organs": [
+      {"name": "heart", "type": "pump", "center": [0, 1, 8], "radius": 0.8, "activity": 0.8},
+      {"name": "stomach", "type": "factory", "center": [0, -1, 10], "radius": 1.2, "activity": 0.6},
+      {"name": "power_core", "type": "power_plant", "center": [0, 0, 6], "radius": 1.0, "activity": 0.9}
+    ]
+  }
+}

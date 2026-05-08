@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Resistance",
+    "index": 4,
+    "core_function": "Risk / Compliance / Stabilization",
+    "description": "Opposition to change; providing structure through inertia and friction."
+  },
+  "operational_constants": {
+    "friction_coefficient": 0.25,
+    "structural_inertia": 0.4,
+    "entropy_rate": 0.02
+  },
+  "logic_mechanics": {
+    "velocity_damping": {
+      "formula": "e.velocity *= (1.0 - local_resistance)",
+      "impact": "Slows movement and state changes to prevent systemic chaos."
+    },
+    "harm_mitigation": {
+      "formula": "net_harm = max(0, incoming_harm - e.resistance - e.integrity)",
+      "impact": "Acts as the primary shield against state disruption and transformation."
+    }
+  },
+  "failure_modes": {
+    "instability": {
+      "condition": "Resistance < 0.1",
+      "result": "Chaos; the unit has no structure and changes state too rapidly to maintain identity."
+    },
+    "stagnation": {
+      "condition": "Resistance > 0.85",
+      "result": "Lock-in; the unit is too rigid to move or adapt, leading to eventual collapse."
+    }
+  }
+}

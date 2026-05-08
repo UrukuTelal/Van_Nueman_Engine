@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Relation",
+    "index": 7,
+    "core_function": "Networking / Dependencies",
+    "description": "The network of interactions between entities; enables exchange and feedback loops."
+  },
+  "operational_constants": {
+    "link_decay": 0.05,
+    "max_connections_per_unit": 64,
+    "exchange_efficiency": 0.8
+  },
+  "logic_mechanics": {
+    "resource_exchange": {
+      "formula": "exchange_amount = compute_relation(e, neighbor) * link_strength",
+      "impact": "Facilitates the flow of info/resources between connected organizational nodes."
+    },
+    "weight_amplification": {
+      "formula": "W_final = W_raw * (Integrity + Relation + Memory) / Resistance_factor",
+      "impact": "Increases systemic dependency by demonstrating high network centrality."
+    }
+  },
+  "failure_modes": {
+    "isolation": {
+      "condition": "Relation < 0.1",
+      "result": "Information silos; the unit cannot receive or send resources to the wider system."
+    },
+    "over_dependence": {
+      "condition": "Relation > 0.9 && Integrity < 0.2",
+      "result": "Systemic fragility; the unit is so interconnected that its failures destabilize neighbors."
+    }
+  }
+}

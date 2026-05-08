@@ -1,0 +1,49 @@
+# Build outputs
+build/
+cmake-build-*/
+
+# Compiled binaries
+*.exe
+*.lib
+*.dll
+*.so
+*.o
+*.obj
+*.a
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*
+
+# Voice model artifacts
+voices/
+espeak-ng-data/
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Temp files
+*.tmp
+*.temp

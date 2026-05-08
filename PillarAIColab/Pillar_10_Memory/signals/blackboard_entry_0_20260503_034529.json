@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-05-03T03:45:29.319396+00:00",
+  "original_length": 366,
+  "signal_length": 512,
+  "non_zero_coefficients": 1,
+  "sparsity": 0.998046875,
+  "threshold_used": 0.7,
+  "max_coefficient": 137748.82039252185,
+  "signal_energy": 18974737519.531246
+}

@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Harm",
+    "index": 12,
+    "core_function": "Disruption Detection / Transformation",
+    "description": "Necessary disruption that forces evolution or signals failure."
+  },
+  "operational_constants": {
+    "transformation_threshold": 0.7,
+    "penalty_coefficient_lambda": 1.5,
+    "recovery_rate": 0.05
+  },
+  "logic_mechanics": {
+    "harm_accumulation": {
+      "formula": "h_new = h_old + max(0, incoming_damage - Resistance - Integrity)",
+      "impact": "Applies state disruption; can force mutation or unit termination."
+    },
+    "moral_objective": {
+      "formula": "min(sum(H_sys)) subject to O >= O_min",
+      "impact": "Governance prioritizing the reduction of systemic damage."
+    }
+  },
+  "failure_modes": {
+    "catastrophic_buildup": {
+      "condition": "Harm > (Resistance + Integrity + Memory)",
+      "result": "Systemic failure; the unit can no longer adapt to incoming disruption."
+    },
+    "victim_loop": {
+      "condition": "Harm > 0.6 && Willpower < 0.2",
+      "result": "Transformation paralysis; the unit focuses on damage signals without the persistence to change."
+    }
+  }
+}

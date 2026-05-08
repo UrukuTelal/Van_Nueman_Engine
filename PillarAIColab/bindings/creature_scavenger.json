@@ -1,0 +1,20 @@
+{
+  "name": "Scavenger",
+  "description": "Opportunistic creature, high adaptability",
+  "pillars": {
+    "Awareness": 0.7,
+    "Willpower": 0.5,
+    "Force": 0.4,
+    "Influence": 0.4,
+    "Resistance": 0.5,
+    "Integrity": 0.6,
+    "Cohesion": 0.5,
+    "Relation": 0.6,
+    "Presence": 0.5,
+    "Warmth": 0.4,
+    "Memory": 0.7,
+    "Attraction": 0.6,
+    "Harm": 0.4,
+    "Distortion": 0.4
+  }
+}

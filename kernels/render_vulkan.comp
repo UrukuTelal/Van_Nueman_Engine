@@ -1,0 +1,43 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform Camera {
+    vec3 position;
+    float fov;
+    vec3 forward;
+    float aspect;
+    vec3 right;
+    float pad1;
+    vec3 up;
+    float pad2;
+    uint width;
+    uint height;
+} cam;
+
+layout(binding = 1, std430) buffer SVO_Buffer {
+    uint nodes[];
+} svo;
+
+layout(binding = 2, rgba32f) uniform image2D output_image;
+
+void main() {
+    uint x = gl_GlobalInvocationID.x;
+    uint y = gl_GlobalInvocationID.y;
+    if (x >= cam.width || y >= cam.height) return;
+
+    float u = (float(x) + 0.5) / float(cam.width) * 2.0 - 1.0;
+    float v = (float(y) + 0.5) / float(cam.height) * 2.0 - 1.0;
+
+    vec3 dir = normalize(cam.forward);
+    float dist = sqrt(u*u + v*v);
+    float intensity = max(0.0, 1.0 - dist);
+
+    vec4 color = vec4(intensity * 0.3, intensity * 0.5, intensity * 0.8, 1.0);
+
+    if (abs(u) < 0.1 && abs(v) < 0.1) {
+        color = vec4(1.0, 1.0, 0.0, 1.0);
+    }
+
+    imageStore(output_image, ivec2(x, y), color);
+}

@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Integrity",
+    "index": 5,
+    "core_function": "Identity / Standards",
+    "description": "Internal consistency and alignment with core values; the coherence of identity across time."
+  },
+  "operational_constants": {
+    "baseline_restoration_strength": 0.35,
+    "structural_rigidity": 0.5,
+    "identity_buffer": 0.2
+  },
+  "logic_mechanics": {
+    "state_restoration": {
+      "formula": "e.internal_state = lerp(e.internal_state, e.baseline_state, e.integrity)",
+      "impact": "Pulls the entity back to its core identity, preventing corruption or drift."
+    },
+    "weight_calculation": {
+      "formula": "W_final = W_raw * (Integrity + Relation + Memory) / Resistance_factor",
+      "impact": "Increases systemic dependency by proving reliability and consistency."
+    }
+  },
+  "failure_modes": {
+    "fragmentation": {
+      "condition": "Integrity < 0.2",
+      "result": "The unit loses its identity; internal components act in contradiction to the whole."
+    },
+    "brittleness": {
+      "condition": "Integrity > 0.9 && Harm > 0.4",
+      "result": "The system is too rigid to adapt; it shatters under stress rather than transforming."
+    }
+  }
+}

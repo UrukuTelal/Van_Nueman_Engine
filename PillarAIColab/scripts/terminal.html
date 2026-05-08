@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw CrowNest Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Courier New', 'Consolas', monospace;
+            font-size: 14px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Skip to main content for accessibility */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #bf00ff;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+            text-decoration: none;
+        }
+        
+        .skip-link:focus {
+            top: 0;
+        }
+        
+        #terminal-header {
+            background-color: #2d2d2d;
+            padding: 10px 20px;
+            border-bottom: 2px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        #terminal-header h1 {
+            font-size: 16px;
+            color: #00ffff;
+            margin: 0;
+        }
+        
+        .concept-uid {
+            font-size: 11px;
+            color: #aaa;
+            background: #333;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .concept-uid span {
+            display: inline-block;
+        }
+        
+        .label {
+            color: #888;
+        }
+        
+        .value {
+            color: #ffa500;
+            font-weight: bold;
+        }
+        
+        /* ---- Feature Tab Bar ---- */
+        #feature-area {
+            flex-shrink: 0;
+            background: #222;
+            border-bottom: 1px solid #444;
+        }
+
+        .tab-bar {
+            display: flex;
+            background: #2a2a2a;
+            border-bottom: 2px solid #444;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            color: #888;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+        }
+
+        .tab-button:hover {
+            color: #ccc;
+            background: #333;
+        }
+
+        .tab-button:focus {
+            outline: 2px solid #00ffff;
+            outline-offset: -2px;
+        }
+
+        .tab-button.active {
+            color: #fff;
+            background: #333;
+        }
+
+        .tab-button[data-tab="memory"].active { border-bottom-color: #ff6b6b; }
+        .tab-button[data-tab="autopoiesis"].active { border-bottom-color: #51cf66; }
+        .tab-button[data-tab="learning"].active { border-bottom-color: #339af0; }
+        .tab-button[data-tab="reasoning"].active { border-bottom-color: #f59f00; }
+        .tab-button[data-tab="sandbox"].active { border-bottom-color: #cc5de8; }
+
+        .feature-panels {
+            position: relative;
+        }
+
+        .feature-panel {
+            display: none;
+            padding: 10px 12px;
+            max-height: 260px;
+            overflow-y: auto;
+            background: #1e1e1e;
+        }
+
+        .feature-panel.active {
+            display: block;
+        }
+
+        .feature-panel h3 {
+            font-size: 13px;
+            color: #aaa;
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .panel-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .panel-controls label {
+            font-size: 12px;
+            color: #aaa;
+            margin-right: 2px;
+        }
+
+        .panel-controls input[type="text"],
+        .panel-controls input[type="number"],
+        .panel-controls textarea,
+        .panel-controls select {
+            background: #111;
+            border: 1px solid #444;
+            color: #ddd;
+            padding: 4px 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+
+        .panel-controls input[type="text"] { width: 140px; }
+        .panel-controls input[type="number"] { width: 70px; }
+        .panel-controls textarea {
+            width: 200px;
+            height: 28px;
+            resize: vertical;
+        }
+        .panel-controls select { width: 80px; }
+
+        .panel-controls input:focus,
+        .panel-controls textarea:focus,
+        .panel-controls select:focus {
+            outline: 1px solid #00ffff;
+        }
+
+        .btn-panel {
+            background: #333;
+            border: 1px solid #555;
+            color: #ddd;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 3px;
+            transition: background 0.15s;
+        }
+
+        .btn-panel:hover {
+            background: #444;
+        }
+
+        .btn-panel:focus {
+            outline: 1px solid #00ffff;
+        }
+
+        .btn-panel.primary {
+            background: #0066cc;
+            border-color: #0077ee;
+            color: #fff;
+        }
+
+        .btn-panel.primary:hover {
+            background: #0077ee;
+        }
+
+        .result-box {
+            background: #111;
+            border: 1px solid #333;
+            border-left: 3px solid #555;
+            padding: 6px 8px;
+            margin-top: 4px;
+            margin-bottom: 6px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            color: #0f0;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border-radius: 2px;
+        }
+
+        .result-box.error {
+            border-left-color: #ff4444;
+            color: #ff6666;
+        }
+
+        .result-box.loading {
+            border-left-color: #ffa500;
+            color: #ffa500;
+        }
+
+        .result-box.success {
+            border-left-color: #00cc66;
+        }
+
+        /* ---- Voice Buttons ---- */
+        .voice-btn {
+            background: #333;
+            border: 1px solid #555;
+            color: #ccc;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+            flex-shrink: 0;
+        }
+
+        .voice-btn:hover {
+            background: #444;
+            border-color: #777;
+        }
+
+        .voice-btn:focus {
+            outline: 2px solid #00ffff;
+            outline-offset: 2px;
+        }
+
+        .voice-btn.recording {
+            background: #660000;
+            border-color: #ff4444;
+            box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+            animation: mic-pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes mic-pulse {
+            0%, 100% { box-shadow: 0 0 4px rgba(255, 68, 68, 0.3); }
+            50% { box-shadow: 0 0 12px rgba(255, 68, 68, 0.7); }
+        }
+
+        .voice-btn.speaking {
+            background: #003300;
+            border-color: #44ff44;
+            box-shadow: 0 0 8px rgba(68, 255, 68, 0.3);
+        }
+
+        #terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #1a1a1a;
+            scroll-behavior: smooth;
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            body {
+                background-color: black;
+                color: white;
+            }
+            
+            .log-entry {
+                border-bottom: 1px solid white;
+            }
+        }
+        
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            #terminal-output {
+                scroll-behavior: auto;
+            }
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        
+        .timestamp {
+            color: #666;
+            min-width: 80px;
+            font-size: 12px;
+        }
+        
+        .user-badge {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .user-ADMIN .user-badge {
+            background-color: #bf00ff;
+            color: white;
+        }
+        
+        .user-SYS .user-badge {
+            background-color: #00ffff;
+            color: black;
+        }
+        
+        .user-PROJECT_MANAGER .user-badge {
+            background-color: #0066ff;
+            color: white;
+        }
+        
+        .user-ROLES .user-badge {
+            background-color: #00ff00;
+            color: black;
+        }
+        
+        .user-AGENT .user-badge {
+            background-color: #ffff00;
+            color: black;
+        }
+        
+        .user-USER .user-badge {
+            background-color: #555;
+            color: white;
+        }
+        
+        .content {
+            flex: 1;
+        }
+        
+        .content p {
+            margin: 0 0 8px 0;
+        }
+        
+        .content h1 {
+            font-size: 16px;
+            margin: 10px 0 5px 0;
+            color: #00ffff;
+        }
+        
+        .content h2 {
+            font-size: 14px;
+            margin: 8px 0 4px 0;
+            color: #00ff00;
+        }
+        
+        .content ul, .content ol {
+            margin: 5px 0 5px 20px;
+        }
+        
+        .content li {
+            margin: 2px 0;
+        }
+        
+        .content pre {
+            background: #252525;
+            padding: 10px;
+            border-left: 3px solid #555;
+            margin: 5px 0;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        
+        .content code {
+            background: #333;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-family: 'Consolas', monospace;
+        }
+        
+        .pillar-uid {
+            font-size: 10px;
+            color: #ffa500;
+            margin-left: 10px;
+            font-style: italic;
+        }
+        
+        #terminal-input-area {
+            background-color: #2d2d2d;
+            padding: 10px;
+            border-top: 2px solid #444;
+            display: flex;
+            gap: 10px;
+        }
+        
+        #command-input {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        
+        #command-input:focus {
+            outline: 2px solid #00ffff;
+            outline-offset: -1px;
+        }
+        
+        #send-btn {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        #send-btn:hover {
+            background: #00cccc;
+        }
+        
+        #send-btn:focus {
+            outline: 2px solid #00ffff;
+            outline-offset: 2px;
+        }
+        
+        .login-hint {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+            padding: 8px;
+            background: #252525;
+            border-radius: 4px;
+        }
+        
+        .aria-live {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <a href="#terminal-output" class="skip-link">Skip to terminal output</a>
+    
+    <header id="terminal-header" role="banner">
+        <h1>🔷 OpenClaw CrowNest Terminal</h1>
+        <div class="concept-uid" role="region" aria-label="CONCEPT UID Information">
+            <span><span class="label">User:</span> <span class="value" id="current-user">SYS</span></span>
+            <span><span class="label">Concept:</span> <span class="value" id="concept">ai_cloud</span></span>
+            <span><span class="label">PID:</span> <span class="value" id="pid">SYS</span></span>
+            <span><span class="label">SID:</span> <span class="value" id="sid">ENV</span></span>
+            <span><span class="label">HID:</span> <span class="value" id="hid">H_SYS</span></span>
+            <span><span class="label">Pillar:</span> <span class="value" id="pillar-state">Loading...</span></span>
+        </div>
+    </header>
+
+    <!-- Feature Tab Bar + Panels -->
+    <div id="feature-area">
+        <nav class="tab-bar" role="tablist" aria-label="Feature panels">
+            <button class="tab-button active" data-tab="memory" role="tab" aria-selected="true" aria-controls="panel-memory">Memory</button>
+            <button class="tab-button" data-tab="autopoiesis" role="tab" aria-selected="false" aria-controls="panel-autopoiesis">Autopoiesis</button>
+            <button class="tab-button" data-tab="learning" role="tab" aria-selected="false" aria-controls="panel-learning">Learning</button>
+            <button class="tab-button" data-tab="reasoning" role="tab" aria-selected="false" aria-controls="panel-reasoning">Reasoning</button>
+            <button class="tab-button" data-tab="sandbox" role="tab" aria-selected="false" aria-controls="panel-sandbox">Sandbox</button>
+        </nav>
+        <div class="feature-panels">
+
+            <!-- Memory Panel -->
+            <div id="panel-memory" class="feature-panel active" role="tabpanel" aria-label="Memory panel">
+                <h3>Memory</h3>
+                <div class="panel-controls">
+                    <label>Vector (JSON array)</label>
+                    <input type="text" id="mem-vector" placeholder='e.g. [1.0, 2.0, ...]' style="flex:1;min-width:120px">
+                    <label>Bits</label>
+                    <select id="mem-bits">
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                        <option value="8">8</option>
+                    </select>
+                    <button class="btn-panel primary" onclick="memoryCompress()">Compress</button>
+                </div>
+                <div id="mem-compress-result" class="result-box">Compress result appears here</div>
+                <div class="panel-controls">
+                    <label>Index</label>
+                    <input type="number" id="mem-index" value="0" min="0" style="width:70px">
+                    <button class="btn-panel primary" onclick="memoryDecompress()">Decompress</button>
+                </div>
+                <div id="mem-decompress-result" class="result-box">Decompress result appears here</div>
+                <div class="panel-controls">
+                    <label>K</label>
+                    <input type="number" id="mem-k" value="3" min="1" style="width:70px">
+                    <button class="btn-panel primary" onclick="memorySearch()">Search</button>
+                    <button class="btn-panel" onclick="memoryStats()">Stats</button>
+                </div>
+                <div id="mem-search-result" class="result-box">Search/Stats result appears here</div>
+            </div>
+
+            <!-- Autopoiesis Panel -->
+            <div id="panel-autopoiesis" class="feature-panel" role="tabpanel" aria-label="Autopoiesis panel">
+                <h3>Autopoiesis</h3>
+                <div class="panel-controls">
+                    <button class="btn-panel" onclick="autoStatus()">Status</button>
+                    <button class="btn-panel" onclick="autoHeartbeat()">Heartbeat</button>
+                </div>
+                <div id="auto-status-result" class="result-box">Status/Heartbeat result appears here</div>
+                <div class="panel-controls">
+                    <label>Cycles</label>
+                    <input type="number" id="auto-cycles" value="1" min="1" style="width:70px">
+                    <button class="btn-panel primary" onclick="autoSample()">Sample</button>
+                </div>
+                <div id="auto-sample-result" class="result-box">Sample result appears here</div>
+            </div>
+
+            <!-- Learning Panel -->
+            <div id="panel-learning" class="feature-panel" role="tabpanel" aria-label="Learning panel">
+                <h3>Learning</h3>
+                <div class="panel-controls">
+                    <button class="btn-panel" onclick="learnListSkills()">List Skills</button>
+                </div>
+                <div id="learn-list-result" class="result-box">List skills result appears here</div>
+                <div class="panel-controls">
+                    <label>Name</label>
+                    <input type="text" id="learn-name" placeholder="skill name" style="width:100px">
+                    <label>Description</label>
+                    <input type="text" id="learn-desc" placeholder="description" style="width:140px">
+                    <label>Content</label>
+                    <input type="text" id="learn-content" placeholder="skill content" style="width:140px">
+                    <button class="btn-panel primary" onclick="learnCreateSkill()">Create Skill</button>
+                </div>
+                <div id="learn-create-result" class="result-box">Create skill result appears here</div>
+                <div class="panel-controls">
+                    <label>Role</label>
+                    <input type="text" id="learn-role" placeholder="user/assistant" style="width:80px">
+                    <label>Content</label>
+                    <input type="text" id="learn-turn-content" placeholder="message content" style="width:200px">
+                    <button class="btn-panel primary" onclick="learnAddTurn()">Add Turn</button>
+                </div>
+                <div id="learn-turn-result" class="result-box">Add turn result appears here</div>
+                <div class="panel-controls">
+                    <label>Messages (JSON)</label>
+                    <input type="text" id="learn-msgs" placeholder='[{"role":"user","content":"..."}]' style="flex:1;min-width:120px">
+                    <button class="btn-panel primary" onclick="learnCompress()">Compress</button>
+                </div>
+                <div id="learn-compress-result" class="result-box">Compress result appears here</div>
+            </div>
+
+            <!-- Reasoning Panel -->
+            <div id="panel-reasoning" class="feature-panel" role="tabpanel" aria-label="Reasoning panel">
+                <h3>Reasoning</h3>
+                <div class="panel-controls">
+                    <label style="align-self:flex-start">Problem</label>
+                    <textarea id="reason-problem" placeholder="Enter problem to reason about..." style="flex:1;min-width:120px;height:36px;background:#111;border:1px solid #444;color:#ddd;padding:4px 8px;font-family:'Courier New',monospace;font-size:12px;border-radius:3px;resize:vertical"></textarea>
+                </div>
+                <div class="panel-controls">
+                    <button class="btn-panel primary" onclick="reasonSolve()">Reason</button>
+                    <button class="btn-panel" onclick="reasonStatus()">Status</button>
+                </div>
+                <div id="reason-result" class="result-box">Reasoning result appears here</div>
+            </div>
+
+            <!-- Sandbox Panel -->
+            <div id="panel-sandbox" class="feature-panel" role="tabpanel" aria-label="Sandbox panel">
+                <h3>Sandbox</h3>
+                <div class="panel-controls">
+                    <label>Command</label>
+                    <input type="text" id="sandbox-cmd" placeholder="e.g. ls -la" style="flex:1;min-width:120px">
+                    <label>Timeout</label>
+                    <input type="number" id="sandbox-timeout" value="30" min="1" style="width:70px">
+                    <button class="btn-panel primary" onclick="sandboxRun()">Run</button>
+                </div>
+                <div id="sandbox-run-result" class="result-box">Run result appears here</div>
+                <div class="panel-controls">
+                    <button class="btn-panel" onclick="sandboxHealth()">Health</button>
+                    <button class="btn-panel" onclick="sandboxLogs()">Logs</button>
+                </div>
+                <div id="sandbox-other-result" class="result-box">Health/Logs result appears here</div>
+            </div>
+
+        </div>
+    </div>
+
+    <main id="terminal-output" role="log" aria-live="polite" aria-atomic="false" tabindex="0">
+        <!-- Terminal output will be inserted here -->
+    </main>
+    
+    <div id="terminal-input-area" role="form" aria-label="Command input">
+        <input type="text" 
+               id="command-input" 
+               placeholder="Type command... (LOGIN ADMIN <password> or LOGIN SYS)" 
+               autofocus 
+               aria-label="Enter command">
+        <button id="mic-btn" class="voice-btn" onclick="toggleMic()" aria-label="Voice input" title="Voice input">🎤</button>
+        <button id="speaker-btn" class="voice-btn" onclick="speakLastResponse()" aria-label="Speak last response" title="Speak last agent response">🔊</button>
+        <button id="send-btn">Send</button>
+    </div>
+    
+    <div class="login-hint" role="note">
+        💡 Login: LOGIN &lt;ROLE&gt; [username] — e.g. "LOGIN ADMIN PapaMoshi" or "LOGIN SYS" or "LOGIN USER Bob"<br>
+        🔧 ADMIN commands: SCAN | FIX &lt;path&gt; | FIX ALL | TEST | ITERATE | STATUS | WORKSPACE &lt;path&gt; | DELEGATE &lt;model&gt; &lt;task&gt; | RESEARCH &lt;query&gt; | APPROVE &lt;id&gt; | REJECT &lt;id&gt; | PENDING | AUTO | KILL [--restart]
+    </div>
+    
+    <!-- ARIA live region for screen readers -->
+    <div id="aria-live" class="aria-live" aria-live="assertive" aria-atomic="true"></div>
+
+    <script>
+        // =============================================
+        // EXISTING TERMINAL CODE
+        // =============================================
+        const terminalOutput = document.getElementById('terminal-output');
+        const commandInput = document.getElementById('command-input');
+        const sendBtn = document.getElementById('send-btn');
+        const currentUser = document.getElementById('current-user');
+        const conceptSpan = document.getElementById('concept');
+        const pidSpan = document.getElementById('pid');
+        const sidSpan = document.getElementById('sid');
+        const hidSpan = document.getElementById('hid');
+        const pillarState = document.getElementById('pillar-state');
+        const ariaLive = document.getElementById('aria-live');
+        
+        let lastMessageId = 0;
+        let pollInterval;
+        
+        // Accessibility: Announce new messages to screen readers
+        function announceToScreenReader(text) {
+            ariaLive.textContent = text;
+            setTimeout(() => { ariaLive.textContent = ''; }, 1000);
+        }
+        
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const parts = timestamp.split('T');
+            if (parts.length > 1) {
+                return parts[1].split('.')[0];  // HH:MM:SS
+            }
+            return timestamp;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function renderMarkdown(content) {
+            // Simple markdown rendering
+            let html = escapeHtml(content);
+            
+            // Code blocks
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            
+            // Headers
+            html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+            
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Italic
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Lists
+            html = html.replace(/^[\*\-] (.*$)/gm, '<li>$1</li>');
+            
+            // Paragraphs
+            html = html.split('\n\n').map(p => `<p>${p}</p>`).join('');
+            
+            return html;
+        }
+        
+        // Track last agent response for speaker button
+        let lastAgentResponseText = '';
+        
+        function appendLogEntry(msg) {
+            const entry = document.createElement('div');
+            // Use msg.role (e.g., "SYS", "AGENT") for CSS class, msg.user for display name
+            const userRole = msg.role || msg.user || 'USER';
+            const displayName = msg.user || userRole;
+            entry.className = `log-entry user-${userRole}`;
+            entry.setAttribute('role', 'article');
+            entry.setAttribute('aria-label', `${msg.aria_label || displayName + ' message'}`);
+            
+            const time = formatTimestamp(msg.timestamp);
+            const userClass = userRole;
+            
+            let contentHtml = '';
+            if (msg.markdown && msg.content_html) {
+                contentHtml = msg.content_html;
+            } else if (msg.has_code) {
+                contentHtml = `<pre><code>${escapeHtml(msg.content)}</code></pre>`;
+            } else {
+                contentHtml = renderMarkdown(msg.content);
+            }
+            
+            // Track last agent response for voice
+            if (userRole === 'AGENT' && msg.content) {
+                lastAgentResponseText = msg.content;
+            }
+            
+            // Pillar UID
+            let pillarHtml = '';
+            if (msg.pillar_uid) {
+                pillarHtml = `<span class="pillar-uid">${msg.pillar_uid}</span>`;
+            }
+            
+            entry.innerHTML = `
+                <span class="timestamp">${time}</span>
+                <span class="user-badge">${displayName}</span>
+                <div class="content">${contentHtml}${pillarHtml}</div>
+            `;
+            
+            terminalOutput.appendChild(entry);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            
+            announceToScreenReader(`${displayName}: ${msg.content.substring(0, 100)}`);
+        }
+        
+        async function pollLogs() {
+            console.log('pollLogs() called');
+            try {
+                const response = await fetch(`/api/log?since=${lastMessageId}`);
+                const data = await response.json();
+                console.log('pollLogs: fetched', data);
+                
+                if (data.messages && data.messages.length > 0) {
+                    console.log(`pollLogs: got ${data.messages.length} new messages`);
+                    data.messages.forEach(msg => {
+                        appendLogEntry(msg);
+                        lastMessageId = msg.id + 1;
+                    });
+                }
+                
+                // Update CONCEPT UID
+                if (data.concept_uid) {
+                    currentUser.textContent = data.concept_uid.username || data.concept_uid.user || 'SYS';
+                    conceptSpan.textContent = data.concept_uid.concept || 'unknown';
+                    pidSpan.textContent = data.concept_uid.pid || 'SYS';
+                    sidSpan.textContent = data.concept_uid.sid || 'ENV';
+                    hidSpan.textContent = data.concept_uid.hid || 'H_SYS';
+                }
+                
+                // Update Pillar State
+                if (data.pillar_uid) {
+                    pillarState.textContent = data.pillar_uid;
+                }
+                
+            } catch (error) {
+                console.error('Poll error:', error);
+                // Show connection lost message (e.g. after KILL command)
+                if (!document.getElementById('connection-lost')) {
+                    const lost = document.createElement('div');
+                    lost.id = 'connection-lost';
+                    lost.style.cssText = 'color:#ff4444;padding:10px;text-align:center;' +
+                        'background:#2d2d2d;border:1px solid #ff4444;margin:10px;border-radius:4px;';
+                    lost.textContent = 'SERVER DISCONNECTED — KILL command executed. Close this tab.';
+                    document.getElementById('terminal-output').appendChild(lost);
+                    clearInterval(pollInterval);
+                    commandInput.disabled = true;
+                    sendBtn.disabled = true;
+                }
+            }
+        }
+        
+        async function sendCommand() {
+            console.log('sendCommand() called!');
+            const command = commandInput.value.trim();
+            if (!command) {
+                console.log('No command entered!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/input', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({input: command})
+                });
+                const data = await response.json();
+                console.log('sendCommand: response', data);
+                commandInput.value = '';
+                
+                // Update UI immediately for login (show username not role)
+                if (data.user) {
+                    currentUser.textContent = data.username || data.user;
+                    if (data.pid) {
+                        pidSpan.textContent = data.pid;
+                        sidSpan.textContent = data.sid;
+                        hidSpan.textContent = data.hid;
+                        conceptSpan.textContent = data.user === 'ADMIN' ? 'human' : 
+                                                 data.user === 'SYS' ? 'ai_cloud' :
+                                                 data.user === 'PROJECT_MANAGER' ? 'management' :
+                                                 data.user === 'ROLES' ? 'organization' :
+                                                 data.user === 'AGENT' ? 'ai_llm_coder' : 'human';
+                    }
+                    
+                    // Announce login
+                    announceToScreenReader(`Logged in as ${data.username || data.user}`);
+                }
+                
+            } catch (error) {
+                console.error('Send error:', error);
+            }
+        }
+        
+        sendBtn.addEventListener('click', sendCommand);
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendCommand();
+        });
+        
+        // Start polling
+        pollInterval = setInterval(pollLogs, 1000);
+        pollLogs();  // Initial poll
+        console.log('Terminal initialized, polling every 1s');
+        
+        // Focus input on load
+        commandInput.focus();
+
+        // =============================================
+        // FEATURE TABS
+        // =============================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            document.querySelectorAll('.feature-panel').forEach(p => {
+                p.classList.remove('active');
+            });
+            const btn = document.querySelector(`.tab-button[data-tab="${tabId}"]`);
+            if (btn) {
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+            }
+            const panel = document.getElementById(`panel-${tabId}`);
+            if (panel) {
+                panel.classList.add('active');
+            }
+        }
+
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchTab(btn.getAttribute('data-tab'));
+            });
+        });
+
+        // =============================================
+        // VOICE CONTROLS
+        // =============================================
+        const micBtn = document.getElementById('mic-btn');
+        const speakerBtn = document.getElementById('speaker-btn');
+        let recognition = null;
+        let isListening = false;
+
+        function toggleMic() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('Speech recognition is not supported in this browser.');
+                return;
+            }
+
+            if (isListening) {
+                if (recognition) {
+                    recognition.stop();
+                }
+                return;
+            }
+
+            if (!recognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.continuous = false;
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    commandInput.value = transcript;
+                    isListening = false;
+                    micBtn.classList.remove('recording');
+                    commandInput.placeholder = "Type command... (LOGIN ADMIN <password> or LOGIN SYS)";
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    isListening = false;
+                    micBtn.classList.remove('recording');
+                    commandInput.placeholder = "Type command... (LOGIN ADMIN <password> or LOGIN SYS)";
+                };
+
+                recognition.onend = function() {
+                    isListening = false;
+                    micBtn.classList.remove('recording');
+                    commandInput.placeholder = "Type command... (LOGIN ADMIN <password> or LOGIN SYS)";
+                };
+            }
+
+            try {
+                recognition.start();
+                isListening = true;
+                micBtn.classList.add('recording');
+                commandInput.placeholder = 'Listening...';
+                commandInput.value = '';
+            } catch (e) {
+                console.error('Speech start error:', e);
+            }
+        }
+
+        function speakLastResponse() {
+            if (!lastAgentResponseText) {
+                announceToScreenReader('No agent response to speak');
+                return;
+            }
+            if (!window.speechSynthesis) {
+                alert('Speech synthesis is not supported in this browser.');
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(lastAgentResponseText);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            speakerBtn.classList.add('speaking');
+            utterance.onend = function() {
+                speakerBtn.classList.remove('speaking');
+            };
+            utterance.onerror = function() {
+                speakerBtn.classList.remove('speaking');
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // =============================================
+        // FEATURE API CALLS - Helper
+        // =============================================
+        function showResult(elId, data, isError) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            if (isError) {
+                el.className = 'result-box error';
+                el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            } else {
+                el.className = 'result-box success';
+                el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            }
+        }
+
+        function setLoading(elId) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.className = 'result-box loading';
+            el.textContent = 'Loading...';
+        }
+
+        function parseJSONOrThrow(str, label) {
+            try {
+                return JSON.parse(str);
+            } catch (e) {
+                throw new Error(`Invalid JSON in ${label}: ${e.message}`);
+            }
+        }
+
+        // =============================================
+        // MEMORY API
+        // =============================================
+        async function memoryCompress() {
+            setLoading('mem-compress-result');
+            try {
+                const vector = parseJSONOrThrow(document.getElementById('mem-vector').value || '[1.0, 2.0, 3.0]', 'vector');
+                const bits = parseInt(document.getElementById('mem-bits').value);
+                const res = await fetch('/api/features/memory/compress', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ vector, bits })
+                });
+                const data = await res.json();
+                // Truncate long data arrays for display
+                if (data.data && Array.isArray(data.data) && data.data.length > 10) {
+                    data.data = data.data.slice(0, 10).concat(['... (' + data.data.length + ' total)']);
+                }
+                showResult('mem-compress-result', data);
+            } catch (e) {
+                showResult('mem-compress-result', e.message, true);
+            }
+        }
+
+        async function memoryDecompress() {
+            setLoading('mem-decompress-result');
+            try {
+                const index = parseInt(document.getElementById('mem-index').value);
+                const res = await fetch('/api/features/memory/decompress', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ index })
+                });
+                const data = await res.json();
+                showResult('mem-decompress-result', data);
+            } catch (e) {
+                showResult('mem-decompress-result', e.message, true);
+            }
+        }
+
+        async function memorySearch() {
+            setLoading('mem-search-result');
+            try {
+                const k = parseInt(document.getElementById('mem-k').value);
+                const res = await fetch('/api/features/memory/search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ k })
+                });
+                const data = await res.json();
+                showResult('mem-search-result', data);
+            } catch (e) {
+                showResult('mem-search-result', e.message, true);
+            }
+        }
+
+        async function memoryStats() {
+            setLoading('mem-search-result');
+            try {
+                const res = await fetch('/api/features/memory/stats');
+                const data = await res.json();
+                showResult('mem-search-result', data);
+            } catch (e) {
+                showResult('mem-search-result', e.message, true);
+            }
+        }
+
+        // =============================================
+        // AUTOPOIESIS API
+        // =============================================
+        async function autoStatus() {
+            setLoading('auto-status-result');
+            try {
+                const res = await fetch('/api/features/autopoiesis/status');
+                const data = await res.json();
+                showResult('auto-status-result', data);
+            } catch (e) {
+                showResult('auto-status-result', e.message, true);
+            }
+        }
+
+        async function autoHeartbeat() {
+            setLoading('auto-status-result');
+            try {
+                const res = await fetch('/api/features/autopoiesis/heartbeat');
+                const data = await res.json();
+                showResult('auto-status-result', data);
+            } catch (e) {
+                showResult('auto-status-result', e.message, true);
+            }
+        }
+
+        async function autoSample() {
+            setLoading('auto-sample-result');
+            try {
+                const cycles = parseInt(document.getElementById('auto-cycles').value);
+                const res = await fetch('/api/features/autopoiesis/sample', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ cycles })
+                });
+                const data = await res.json();
+                showResult('auto-sample-result', data);
+            } catch (e) {
+                showResult('auto-sample-result', e.message, true);
+            }
+        }
+
+        // =============================================
+        // LEARNING API
+        // =============================================
+        async function learnListSkills() {
+            setLoading('learn-list-result');
+            try {
+                const res = await fetch('/api/features/learning/skills');
+                const data = await res.json();
+                showResult('learn-list-result', data);
+            } catch (e) {
+                showResult('learn-list-result', e.message, true);
+            }
+        }
+
+        async function learnCreateSkill() {
+            setLoading('learn-create-result');
+            try {
+                const name = document.getElementById('learn-name').value || 'unnamed';
+                const description = document.getElementById('learn-desc').value || '';
+                const content = document.getElementById('learn-content').value || '';
+                const res = await fetch('/api/features/learning/skills', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, description, content })
+                });
+                const data = await res.json();
+                showResult('learn-create-result', data);
+            } catch (e) {
+                showResult('learn-create-result', e.message, true);
+            }
+        }
+
+        async function learnAddTurn() {
+            setLoading('learn-turn-result');
+            try {
+                const role = document.getElementById('learn-role').value || 'user';
+                const content = document.getElementById('learn-turn-content').value || '';
+                const res = await fetch('/api/features/learning/trajectory', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ role, content })
+                });
+                const data = await res.json();
+                showResult('learn-turn-result', data);
+            } catch (e) {
+                showResult('learn-turn-result', e.message, true);
+            }
+        }
+
+        async function learnCompress() {
+            setLoading('learn-compress-result');
+            try {
+                const messages = parseJSONOrThrow(document.getElementById('learn-msgs').value || '[{"role":"user","content":"hello"}]', 'messages');
+                const res = await fetch('/api/features/learning/compress', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ messages })
+                });
+                const data = await res.json();
+                showResult('learn-compress-result', data);
+            } catch (e) {
+                showResult('learn-compress-result', e.message, true);
+            }
+        }
+
+        // =============================================
+        // REASONING API
+        // =============================================
+        async function reasonSolve() {
+            setLoading('reason-result');
+            try {
+                const problem = document.getElementById('reason-problem').value || '';
+                const res = await fetch('/api/features/reason', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ problem })
+                });
+                const data = await res.json();
+                showResult('reason-result', data);
+            } catch (e) {
+                showResult('reason-result', e.message, true);
+            }
+        }
+
+        async function reasonStatus() {
+            setLoading('reason-result');
+            try {
+                const res = await fetch('/api/features/reason/status');
+                const data = await res.json();
+                showResult('reason-result', data);
+            } catch (e) {
+                showResult('reason-result', e.message, true);
+            }
+        }
+
+        // =============================================
+        // SANDBOX API
+        // =============================================
+        async function sandboxRun() {
+            setLoading('sandbox-run-result');
+            try {
+                const command = document.getElementById('sandbox-cmd').value || 'echo hello';
+                const timeout = parseInt(document.getElementById('sandbox-timeout').value) || 30;
+                const res = await fetch('/api/features/sandbox/run', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ command, timeout })
+                });
+                const data = await res.json();
+                showResult('sandbox-run-result', data);
+            } catch (e) {
+                showResult('sandbox-run-result', e.message, true);
+            }
+        }
+
+        async function sandboxHealth() {
+            setLoading('sandbox-other-result');
+            try {
+                const res = await fetch('/api/features/sandbox/health');
+                const data = await res.json();
+                showResult('sandbox-other-result', data);
+            } catch (e) {
+                showResult('sandbox-other-result', e.message, true);
+            }
+        }
+
+        async function sandboxLogs() {
+            setLoading('sandbox-other-result');
+            try {
+                const res = await fetch('/api/features/sandbox/logs');
+                const data = await res.json();
+                showResult('sandbox-other-result', data);
+            } catch (e) {
+                showResult('sandbox-other-result', e.message, true);
+            }
+        }
+    </script>
+</body>
+</html>

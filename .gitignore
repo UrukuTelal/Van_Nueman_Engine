@@ -1,0 +1,70 @@
+# Build outputs
+build/
+cmake-build-*/
+
+# Compiled binaries
+*.exe
+*.lib
+*.dll
+*.so
+*.o
+*.obj
+*.a
+
+# GPU/LLVM intermediate files
+*.spv
+*.bc
+*.ll
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Binary assets (tracked via LFS or separate asset pipeline)
+*.mp3
+*.wav
+*.png
+*.jpg
+*.jpeg
+*.ttf
+*.otf
+*.glb
+*.gltf
+*.fbx
+*.obj
+
+# Asset directories (large binaries)
+assets/images/
+assets/audio/
+assets/fonts/
+assets/models/
+assets/textures/
+
+# Python virtual environments
+env/
+venv/
+.venv/
+
+# Environment files
+.env
+.env.local
+.env.*
+
+# Temp files
+*.tmp
+*.temp

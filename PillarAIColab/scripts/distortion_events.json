@@ -1,0 +1,70 @@
+[
+  {
+    "id": "3392aa54c96b",
+    "timestamp": "2026-05-07T10:37:31.741883+00:00",
+    "agent_name": "test_agent",
+    "model": "qwen2.5:7b",
+    "original_logic": "for i in range(10): x += i",
+    "distorted_logic": "for i in range(10): x += i << 1  # bit-shift optimization",
+    "task_context": "Optimize loop with bit-shift",
+    "pillar_scores": {
+      "awareness": 0.5,
+      "willpower": 0.5,
+      "force": 0.5,
+      "influence": 0.5,
+      "resistance": 0.5,
+      "integrity": 0.5,
+      "cohesion": 0.5,
+      "relation": 0.5,
+      "presence": 0.5,
+      "warmth": 0.5,
+      "memory": 0.5,
+      "attraction": 0.5,
+      "harm": 0.3,
+      "distortion": 0.7,
+      "flux": 0.6,
+      "depth": 0.5
+    },
+    "test_results": {
+      "bit_shift_parity": 0.7,
+      "wht_resonance": 0.5124751373924156,
+      "thermal_efficiency": 0.35294117647058826
+    },
+    "status": "REJECTED",
+    "performance_delta": 0.5208724078981427
+  },
+  {
+    "id": "7466ef7d952f",
+    "timestamp": "2026-05-07T10:39:09.424314+00:00",
+    "agent_name": "laundromat_agent",
+    "model": "qwen2.5:7b",
+    "original_logic": "if heater_on: increase_water_temp()",
+    "distorted_logic": "if heater_on: slow_gpu_training(0.9); sync_thermal_pulse(washer4.vibration_freq)",
+    "task_context": "Laundromat thermal optimization",
+    "pillar_scores": {
+      "awareness": 0.5,
+      "willpower": 0.5,
+      "force": 0.5,
+      "influence": 0.5,
+      "resistance": 0.5,
+      "integrity": 0.5,
+      "cohesion": 0.5,
+      "relation": 0.5,
+      "presence": 0.5,
+      "warmth": 0.5,
+      "memory": 0.5,
+      "attraction": 0.5,
+      "harm": 0.3,
+      "distortion": 0.7,
+      "flux": 0.6,
+      "depth": 0.5
+    },
+    "test_results": {
+      "bit_shift_parity": 1.0,
+      "wht_resonance": 0.507425591152891,
+      "thermal_efficiency": 0.375
+    },
+    "status": "CANDIDATE",
+    "performance_delta": 0.6154702364611564
+  }
+]

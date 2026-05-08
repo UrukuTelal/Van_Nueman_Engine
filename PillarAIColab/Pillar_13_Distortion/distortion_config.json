@@ -1,0 +1,64 @@
+{
+  "pillar_metadata": {
+    "name": "Distortion",
+    "index": 13,
+    "core_function": "Information Decay / Perception Subversion",
+    "description": "The noise that obscures Awareness and erodes Integrity."
+  },
+  
+  "operational_constants": {
+    "noise_floor": 0.05,
+    "decay_rate": 0.01,
+    "saturation_threshold": 0.85,
+    "integrity_coupling": 0.4
+  },
+
+  "logic_mechanics": {
+    "perception_filter": {
+      "formula": "effective_awareness = Awareness * (1.0 - Distortion)",
+      "impact": "Decreases data and perception accuracy."
+    },
+    "identity_drift": {
+      "formula": "integrity_loss = (Distortion * time_step) / Willpower",
+      "impact": "Causes unit behavior to drift from its baseline Pillar State Vector."
+    },
+    "influence_corruption": {
+      "formula": "signal_truthfulness = signal * (1.0 - Distortion)",
+      "impact": "Viral misinformation; the capacity to spread states that do not match reality."
+    }
+  },
+
+  "economic_penalties": {
+    "weight_reduction": {
+      "trigger": "Distortion > 0.2",
+      "penalty": "W_final = W_raw * (1.0 - (Distortion * Resistance_factor))",
+      "interpretation": "Penalizes systemic dependency by making the unit's output unreliable."
+    },
+    "transaction_friction": {
+      "increase": "Resistance (Rs) += Distortion * 0.5",
+      "reasoning": "High noise requires more Awareness cycles for verification, slowing execution."
+    }
+  },
+
+  "failure_modes": {
+    "distortion_saturation": {
+      "condition": "Distortion > Awareness",
+      "result": "Systemic collapse; Awareness becomes useless noise."
+    },
+    "presence_domination_mask": {
+      "condition": "Presence > 0.8 && Awareness < 0.3",
+      "result": "Loud units disguise high-volume Distortion as signal."
+    }
+  },
+
+  "mitigation_strategies": {
+    "primary": {
+      "formula": "integrity_check = Integrity / (Distortion + epsilon)",
+      "impact": "Realign system with core values."
+    },
+    "secondary": {
+      "formula": "memory_flush = Harm_event * adaptation_rate",
+      "impact": "Flush stale, distorted Memory."
+    }
+  }
+}

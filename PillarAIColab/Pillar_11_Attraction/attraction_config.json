@@ -1,0 +1,42 @@
+{
+  "pillar_metadata": {
+    "name": "Attraction",
+    "index": 11,
+    "core_function": "Incentives / Directional Pull",
+    "description": "Guides behavior without force by creating movement gradients toward goals or resources."
+  },
+  
+  "operational_constants": {
+    "gradient_sensitivity": 0.15,
+    "repulsion_threshold": -0.5,
+    "clustering_coefficient": 0.3
+  },
+
+  "logic_mechanics": {
+    "behavioral_pull": {
+      "formula": "e.velocity += compute_gradient(field['attraction'], e.position) * e.attraction",
+      "impact": "Determines the 'internal goal' trajectory for the unit."
+    },
+    "investment_draw": {
+      "formula": "Investment_I = f(Attraction, Willpower, Memory)",
+      "impact": "Drives the allocation of resources and capital toward high-pull units."
+    }
+  },
+
+  "interaction_matrix": {
+    "Attraction + Cohesion": "Cluster growth; formation of teams, departments, or colonies.",
+    "Attraction + Force": "Targeted execution; energy is applied specifically toward the goal.",
+    "Attraction + Harm": "Obsessive behavior or addiction failure modes where the pull leads to damage."
+  },
+
+  "failure_modes": {
+    "apathy": {
+      "condition": "Attraction < 0.1",
+      "result": "Stagnation; the unit has no directional drive and moves randomly."
+    },
+    "obsession_loop": {
+      "condition": "Attraction > 0.9 && Harm > 0.5",
+      "result": "Destructive pursuit; the unit continues toward a goal that is actively causing harm."
+    }
+  }
+}

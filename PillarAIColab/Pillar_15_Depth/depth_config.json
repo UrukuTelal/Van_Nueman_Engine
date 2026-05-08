@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Depth",
+    "index": 15,
+    "core_function": "Latent Capacity",
+    "description": "The stored pressure or unrealized possibility held within the system’s constraints; represents the agent’s resilience and ceiling for complex work."
+  },
+  "operational_constants": {
+    "capacity_reserve": 0.8,
+    "absorption_factor": 0.5,
+    "potential_threshold": 0.4
+  },
+  "logic_mechanics": {
+    "capacity_buffer": {
+      "formula": "effective_stability = depth / (1 + distortion)",
+      "impact": "High Depth absorbs entropy and protects Integrity from overload."
+    },
+    "ambition_scaling": {
+      "formula": "goal_range = base_goal * depth",
+      "impact": "Depth defines the scale of longer-term, multi-step planning."
+    }
+  },
+  "failure_modes": {
+    "ossification": {
+      "condition": "Depth > Flux * 2",
+      "result": "High potential becomes ossified because there is insufficient throughput to express it."
+    },
+    "vulnerability": {
+      "condition": "Depth < 0.2 && Harm > 0.5",
+      "result": "The agent can no longer absorb disruption and becomes brittle."
+    }
+  }
+}

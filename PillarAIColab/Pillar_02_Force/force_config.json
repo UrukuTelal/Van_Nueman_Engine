@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Force",
+    "index": 2,
+    "core_function": "Execution / Production",
+    "description": "The application of energy to enact change in reality; determines what happens."
+  },
+  "operational_constants": {
+    "energy_conversion_rate": 0.8,
+    "impact_coefficient": 0.5,
+    "force_decay": 0.05
+  },
+  "logic_mechanics": {
+    "velocity_scaling": {
+      "formula": "e.velocity *= (1.0 + e.force)",
+      "impact": "Scales the physical movement and interaction strength of the unit."
+    },
+    "production_output": {
+      "formula": "P_e = alpha * Force * Willpower * Awareness * Integrity",
+      "impact": "Primary driver for the economic output of the organizational unit."
+    }
+  },
+  "failure_modes": {
+    "impotence": {
+      "condition": "Force < 0.1",
+      "result": "Inability to act; the unit remains static despite intent or awareness."
+    },
+    "uncontrolled_impact": {
+      "condition": "Force > 0.9 && Awareness < 0.2",
+      "result": "Systemic destruction; energy is applied randomly, increasing Harm (H) exponentially."
+    }
+  }
+}

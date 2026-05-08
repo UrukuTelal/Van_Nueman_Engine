@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Cohesion",
+    "index": 6,
+    "core_function": "Team Structure / Binding Force",
+    "description": "The force that keeps entities together as a system."
+  },
+  "operational_constants": {
+    "binding_strength": 0.4,
+    "group_alignment_factor": 0.25,
+    "conformity_pressure": 0.1
+  },
+  "logic_mechanics": {
+    "flocking_algorithm": {
+      "formula": "center = average_position(neighbors); e.velocity += (center - e.position) * e.cohesion",
+      "impact": "Creates clustering behavior and team-based movement."
+    },
+    "scale_control": {
+      "formula": "S_U = log(n) * Presence",
+      "impact": "Determines the effective operational reach of the unit."
+    }
+  },
+  "failure_modes": {
+    "fragmentation": {
+      "condition": "Cohesion < 0.15",
+      "result": "Units operate in isolation; loss of the benefits of scale."
+    },
+    "forced_conformity": {
+      "condition": "Cohesion > 0.9",
+      "result": "Loss of individuality; system becomes unable to adapt to local noise."
+    }
+  }
+}

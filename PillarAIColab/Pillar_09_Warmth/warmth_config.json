@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Warmth",
+    "index": 9,
+    "core_function": "HR / Support Systems",
+    "description": "Supportive energy that nurtures growth, trust, and systemic stability."
+  },
+  "operational_constants": {
+    "healing_coefficient": 0.2,
+    "trust_decay_buffer": 0.3,
+    "growth_boost": 1.15
+  },
+  "logic_mechanics": {
+    "energy_restoration": {
+      "formula": "e.energy += local_warmth * e.warmth",
+      "impact": "Boosts growth and stability while repairing damage from Harm."
+    },
+    "friction_reduction": {
+      "formula": "effective_resistance = Resistance * (1.0 - Warmth)",
+      "impact": "Makes the system more adaptable and less rigid by lowering internal friction."
+    }
+  },
+  "failure_modes": {
+    "complacency": {
+      "condition": "Warmth > 0.85 && Force < 0.2",
+      "result": "Warmth Exploitation; units prioritize comfort over production and execution."
+    },
+    "hostility": {
+      "condition": "Warmth < 0.1",
+      "result": "Coldness; high friction, lack of trust, and eventual systemic fragmentation."
+    }
+  }
+}

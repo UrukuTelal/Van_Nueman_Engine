@@ -1,0 +1,20 @@
+{
+  "name": "Predator",
+  "description": "Fast, stealthy, high-force creature with hunting instincts",
+  "pillars": {
+    "Awareness": 0.8,
+    "Willpower": 0.7,
+    "Force": 0.9,
+    "Influence": 0.3,
+    "Resistance": 0.6,
+    "Integrity": 0.7,
+    "Cohesion": 0.2,
+    "Relation": 0.3,
+    "Presence": 0.6,
+    "Warmth": 0.2,
+    "Memory": 0.6,
+    "Attraction": 0.8,
+    "Harm": 0.7,
+    "Distortion": 0.2
+  }
+}

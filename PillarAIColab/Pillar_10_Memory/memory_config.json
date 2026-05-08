@@ -1,0 +1,36 @@
+{
+  "pillar_metadata": {
+    "name": "Memory",
+    "index": 10,
+    "core_function": "Knowledge Systems / Learning",
+    "description": "Retention of past states to influence future behavior; enables learning and prediction."
+  },
+  "operational_constants": {
+    "blending_factor": 0.15,
+    "historical_depth": 100,
+    "decay_constant": 0.005,
+    "wht_enabled": true,
+    "wht_threshold": 0.3,
+    "signal_storage_path": "Pillar_10_Memory/signals/"
+  },
+  "logic_mechanics": {
+    "state_retention": {
+      "formula": "e.memory_state = blend(e.memory_state, e.internal_state, e.memory)",
+      "impact": "Stores past states to bias current and future behavior trajectories."
+    },
+    "weight_adjustment": {
+      "formula": "W_final = W_raw * (Integrity + Relation + Memory) / Resistance_factor",
+      "impact": "Increases systemic dependency by representing learned specialization."
+    }
+  },
+  "failure_modes": {
+    "amnesia": {
+      "condition": "Memory < 0.1",
+      "result": "Repetition of mistakes; the unit cannot learn from Harm or adapt to its environment."
+    },
+    "memory_lock_in": {
+      "condition": "Memory > 0.9 && Willpower > 0.8",
+      "result": "Structural rigidity; the organization is unable to pivot due to obsession with historical models."
+    }
+  }
+}

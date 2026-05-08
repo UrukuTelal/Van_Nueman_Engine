@@ -1,0 +1,99 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+
+// Van Nueman Entity Neural Network - Vulkan Compute Shader
+// Processes 500,000 entities in parallel on GPU
+
+layout (local_size_x = 256) in;
+
+// Input: Entity pillar states (16 floats per entity)
+layout (std430, binding = 0) readonly buffer PillarStates {
+    float pillar_data[];  // [entity_idx * 16 + pillar_idx]
+} pillar_states;
+
+// Output: Selected actions (1 uint per entity)
+layout (std430, binding = 1) writeonly buffer EntityActions {
+    uint action_data[];  // [entity_idx] = selected action (0-7)
+} entity_actions;
+
+// Neural network weights (simplified: single layer)
+// Weights: [8 actions] x [16 pillars] = 128 floats
+layout (std430, binding = 2) readonly buffer WeightBuffer {
+    float weights[];  // [action * 16 + pillar] 
+} weight_buffer;
+
+// Bias terms: [8 actions]
+layout (std430, binding = 3) readonly buffer BiasBuffer {
+    float biases[];  // [action]
+} bias_buffer;
+
+// Push constants
+layout (push_constant) uniform PushConstants {
+    float epsilon;        // Exploration rate (0.0 - 1.0)
+    uint num_entities;   // Actual number of entities
+} pc;
+
+// Pseudo-random number generation (simple hash)
+uint hash(uint x) {
+    x ^= x >> 16;
+    x *= 0x85ebca6b;
+    x ^= x >> 13;
+    x *= 0xc2b2ae35;
+    x ^= x >> 16;
+    return x;
+}
+
+void main() {
+    uint entity_idx = gl_GlobalInvocationID.x;
+    
+    // Bounds check
+    if (entity_idx >= pc.num_entities) return;
+    
+    // Load entity's 16D pillar state vector
+    float pillars[16];
+    uint base_idx = entity_idx * 16;
+    for (uint i = 0; i < 16; i++) {
+        pillars[i] = pillar_states.pillar_data[base_idx + i];
+    }
+    
+    // Compute Q-values for all 8 actions (dot product + bias)
+    float q_values[8];
+    for (uint action = 0; action < 8; action++) {
+        float q = biases.biases[action];  // Start with bias
+        
+        // Dot product: weights[action][pillar] * pillar[pillar]
+        uint weight_base = action * 16;
+        for (uint p = 0; p < 16; p++) {
+            q += weight_buffer.weights[weight_base + p] * pillars[p];
+        }
+        
+        q_values[action] = q;
+    }
+    
+    // Epsilon-greedy action selection
+    uint selected_action;
+    
+    // Generate random number (using entity index + some noise)
+    uint rand_val = hash(entity_idx * 1234567 + uint(gl_GlobalInvocationID.x * 0.123456f));
+    float rand_frac = float(rand_val) / 4294967295.0f;  // Normalize to [0,1]
+    
+    if (rand_frac < pc.epsilon) {
+        // Explore: random action
+        selected_action = hash(entity_idx * 7654321) % 8;
+    } else {
+        // Exploit: choose action with highest Q-value
+        float max_q = q_values[0];
+        selected_action = 0;
+        
+        for (uint a = 1; a < 8; a++) {
+            if (q_values[a] > max_q) {
+                max_q = q_values[a];
+                selected_action = a;
+            }
+        }
+    }
+    
+    // Store selected action
+    entity_actions.action_data[entity_idx] = selected_action;
+}

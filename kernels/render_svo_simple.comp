@@ -1,0 +1,57 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform UBO {
+    vec3 position;
+    float fov;
+    vec3 forward;
+    float aspect;
+    vec3 right;
+    float _pad1;
+    vec3 up;
+    float _pad2;
+    uint width;
+    uint height;
+    uint _pad3[2];
+} camera;
+
+layout(binding = 1, r8ui) uniform readonly uimageBuffer svoBuffer;
+layout(binding = 2, rgba8) uniform writeonly image2D outputImg;
+
+// Simple SVO node struct (8 bytes)
+struct SVO_Node {
+    uint children[8];  // Child indices (we'll use 32-bit)
+    uint data;        // material in bits 0-7, valid mask in bits 8-15
+};
+
+void main() {
+    uvec2 gid = gl_GlobalInvocationID.xy;
+    if (gid.x >= camera.width || gid.y >= camera.height) return;
+    
+    // Simple test: create a gradient with some "voxel-like" pattern
+    float cx = float(gid.x) / float(camera.width);
+    float cy = float(gid.y) / float(camera.height);
+    
+    // Create a "voxel grid" pattern
+    int voxel_x = int(cx * 16.0);
+    int voxel_y = int(cy * 16.0);
+    int checker = (voxel_x + voxel_y) & 1;
+    
+    // Blue gradient + voxel pattern
+    vec4 color;
+    if (checker == 0) {
+        color = vec4(cx * 0.3, cy * 0.3, 1.0, 1.0);  // Dark blue
+    } else {
+        color = vec4(cx * 0.5, cy * 0.5, 0.7, 1.0);  // Medium blue
+    }
+    
+    // Add a "voxel highlight" in center
+    float center_dist = length(vec2(cx - 0.5, cy - 0.5));
+    if (center_dist < 0.2) {
+        color = vec4(1.0, 1.0, 0.0, 1.0);  // Yellow highlight
+    }
+    
+    imageStore(outputImg, ivec2(gid), color);
+}

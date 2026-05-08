@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Willpower",
+    "index": 1,
+    "core_function": "Strategic Persistence",
+    "description": "Continuity of intent and long-term direction; maintains behavior against noise."
+  },
+  "operational_constants": {
+    "persistence_coefficient": 0.3,
+    "drift_resistance": 0.5,
+    "trajectory_lock": 0.2
+  },
+  "logic_mechanics": {
+    "trajectory_persistence": {
+      "formula": "e.velocity += (e.internal_goal - e.position) * e.willpower",
+      "impact": "Maintains direction over time and overrides local environmental noise."
+    },
+    "state_drift_control": {
+      "formula": "pillars.p[p] = current + ((current >> 10) * (willpower >> 16))",
+      "impact": "Ensures the internal state vector drifts toward baseline intent rather than external noise."
+    }
+  },
+  "failure_modes": {
+    "drift": {
+      "condition": "Willpower < 0.15",
+      "result": "Indecision; the unit is easily swayed by local noise and loses long-term direction."
+    },
+    "rigidity": {
+      "condition": "Willpower > 0.9 && Awareness < 0.2",
+      "result": "Inability to adapt; the unit continues a trajectory even when it leads to high Harm (H)."
+    }
+  }
+}

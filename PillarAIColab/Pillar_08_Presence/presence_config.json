@@ -1,0 +1,33 @@
+{
+  "pillar_metadata": {
+    "name": "Presence",
+    "index": 8,
+    "core_function": "Priority / Visibility",
+    "description": "The degree to which an entity is perceived and impactful in a system."
+  },
+  "operational_constants": {
+    "visibility_radius": 10.0,
+    "priority_weight": 0.5,
+    "normalization_factor": 0.2
+  },
+  "logic_mechanics": {
+    "visibility_check": {
+      "formula": "visibility = e.presence / distance(e, observer)",
+      "impact": "Determines which entities are prioritized for processing and response."
+    },
+    "scale_interaction": {
+      "formula": "S_U = log(n) * Presence",
+      "impact": "Presence controls the influence of scale within the organizational structure."
+    }
+  },
+  "failure_modes": {
+    "invisibility": {
+      "condition": "Presence < 0.1",
+      "result": "Neglect; the unit's state and needs are ignored by the system."
+    },
+    "presence_domination": {
+      "condition": "Presence > 0.8 && Awareness < 0.3",
+      "result": "Signal override; loud but inaccurate units dominate system attention."
+    }
+  }
+}

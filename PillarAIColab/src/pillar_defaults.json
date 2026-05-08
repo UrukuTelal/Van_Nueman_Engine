@@ -1,0 +1,24 @@
+{
+  "pillar_metadata": {
+    "name": "Default",
+    "index": -1,
+    "core_function": "Fallback placeholder",
+    "description": "Used when a pillar config is missing or invalid."
+  },
+  "operational_constants": {
+    "default_value": 0.5,
+    "tolerance": 0.1
+  },
+  "logic_mechanics": {
+    "default_behavior": {
+      "formula": "output = input * 0.5",
+      "impact": "Neutral passthrough with minimal transformation."
+    }
+  },
+  "failure_modes": {
+    "missing_config": {
+      "condition": "config_file == null",
+      "result": "System uses this default to prevent crashes."
+    }
+  }
+}

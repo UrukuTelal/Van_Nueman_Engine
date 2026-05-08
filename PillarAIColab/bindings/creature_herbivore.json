@@ -1,0 +1,20 @@
+{
+  "name": "Herbivore",
+  "description": "Gentle creature with high warmth, flocking behavior",
+  "pillars": {
+    "Awareness": 0.5,
+    "Willpower": 0.4,
+    "Force": 0.3,
+    "Influence": 0.6,
+    "Resistance": 0.7,
+    "Integrity": 0.8,
+    "Cohesion": 0.9,
+    "Relation": 0.8,
+    "Presence": 0.4,
+    "Warmth": 0.9,
+    "Memory": 0.5,
+    "Attraction": 0.4,
+    "Harm": 0.2,
+    "Distortion": 0.3
+  }
+}

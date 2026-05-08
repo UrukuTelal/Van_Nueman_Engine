@@ -1,0 +1,167 @@
+{
+  "report": "CrowLoki Repos vs Van Nueman — Feature Gap Analysis",
+  "generated": "2026-05-07",
+  "todo_features": [
+    {
+      "id": "TODO-1",
+      "repo": "crowquant",
+      "feature": "Adaptive Vector Compression (WHT + quantization + bit packing)",
+      "description": "6-10x compression for AI memory embeddings using Walsh-Hadamard Transform decorrelation, adaptive outlier detection, uniform quantization, and bit packing. Profiles: CrowStation (3-bit/10x), Universal (4-bit/8x), Aggressive (2-bit/16x), HighFidelity (8-bit/4x).",
+      "priority": "HIGH",
+      "notes": "Van Nueman has WHT audio but no memory vector compression. crowquant's WHT-based approach directly complements the existing WHT infrastructure."
+    },
+    {
+      "id": "TODO-2",
+      "repo": "crowquant",
+      "feature": "Compressed Vector Search (cosine similarity + KNN)",
+      "description": "Compressed-domain cosine similarity and K-nearest-neighbor search on quantized vectors without full decompression.",
+      "priority": "HIGH",
+      "notes": "Would enable efficient agent memory retrieval at scale."
+    },
+    {
+      "id": "TODO-3",
+      "repo": "crowquant",
+      "feature": "Database Bridges (SQLite-vec, LanceDB, Honcho)",
+      "description": "Bridges to store/search compressed vectors in SQLite-vec, LanceDB (vector DB), and Honcho (dialectic memory system).",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TODO-4",
+      "repo": "crowclaw-public-release",
+      "feature": "Autopoiesis Subsystem",
+      "description": "Self-maintaining runtime subsystem that monitors and heals its own state. First-class subsystem with status/sample CLI commands.",
+      "priority": "HIGH",
+      "notes": "Directly aligns with Van Nueman's autopoietic pillar philosophy. Would formalize self-healing agent behavior."
+    },
+    {
+      "id": "TODO-5",
+      "repo": "crowclaw-public-release",
+      "feature": "CLI with Feature Toggles + Diagnostics",
+      "description": "Unified CLI with feature flags (crowquant.enabled, autopoiesis.enabled), diagnostics subsystem that explains unavailable features, local-first config at ~/.crowclaw/.",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TODO-6",
+      "repo": "CrowNest-Public",
+      "feature": "OASIS Social Simulation",
+      "description": "Standalone village-style multi-agent social simulation where agents interact, form relationships, and evolve in a simulated environment.",
+      "priority": "MEDIUM",
+      "notes": "Van Nueman has CrowNest already but lacks the OASIS village simulation engine."
+    },
+    {
+      "id": "TODO-7",
+      "repo": "CrowNest-Public",
+      "feature": "MiroFish Prediction Web App (Vue.js + Flask)",
+      "description": "Graph-backed swarm prediction web app with Vue.js frontend and Flask backend. Document-to-graph-to-simulation workflow. Prediction Lab for live topic/news/price forecasting via multi-agent debate.",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TODO-8",
+      "repo": "CrowNest-Public",
+      "feature": "Provider-Agnostic Agent Config (OpenRouter, Anthropic, etc.)",
+      "description": "Configuration layer supporting Ollama, OpenRouter, OpenAI, Anthropic, and generic OpenAI-compatible endpoints without code changes.",
+      "priority": "LOW",
+      "notes": "Van Nueman LLM bridge is Ollama-only currently."
+    },
+    {
+      "id": "TODO-9",
+      "repo": "hermes-agent",
+      "feature": "Self-Improving Learning Loop (Skill Creation)",
+      "description": "Agent autonomously creates skills from experience, improves them during use, persists knowledge across sessions, and builds a deepening user model. FTS5 session search.",
+      "priority": "HIGH",
+      "notes": "Most impactful feature for evolving agent intelligence. Aligns with PCMSRM growth philosophy."
+    },
+    {
+      "id": "TODO-10",
+      "repo": "hermes-agent",
+      "feature": "Multi-Platform Messaging Gateway",
+      "description": "Single gateway supporting Telegram, Discord, Slack, WhatsApp, Signal, and CLI. Agents communicate through any channel transparently.",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TODO-11",
+      "repo": "hermes-agent",
+      "feature": "Cron Scheduler with Platform Delivery",
+      "description": "Built-in scheduler for periodic agent tasks with delivery to any supported platform (Telegram, Discord, etc.).",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TODO-12",
+      "repo": "hermes-agent",
+      "feature": "7 Terminal Backends (local/Docker/SSH/Singularity/Modal/Daytona/Vercel)",
+      "description": "Multiple execution environments for agent code: local process, Docker container, SSH remote, Singularity container, Modal serverless, Daytona workspace, Vercel Sandbox.",
+      "priority": "LOW",
+      "notes": "Useful for sandboxed code execution. Van Nueman has no agent code execution backend."
+    },
+    {
+      "id": "TODO-13",
+      "repo": "hermes-agent",
+      "feature": "MCP (Model Context Protocol) Integration",
+      "description": "Standard protocol for tool discovery and invocation. 40+ tools with toolset system.",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TODO-14",
+      "repo": "hermes-agent",
+      "feature": "RL Training Environments (Atropos)",
+      "description": "Batch trajectory generation and reinforcement learning environments for agent training.",
+      "priority": "LOW",
+      "notes": "Van Nueman has neuroevolution but no dedicated RL training framework for agents."
+    },
+    {
+      "id": "TODO-15",
+      "repo": "HRM",
+      "feature": "Hierarchical Recurrent Reasoning Architecture",
+      "description": "Dual-recurrent module: high-level (slow, abstract planning) + low-level (rapid, detailed computations). 27M parameters. Near-perfect on Sudoku/mazes with only 1000 samples. Outperforms larger models on ARC.",
+      "priority": "HIGH",
+      "notes": "Directly relevant to Van Nueman's agent cognition. Could replace/supplement existing cognition.cpp."
+    },
+    {
+      "id": "TODO-16",
+      "repo": "HRM",
+      "feature": "FlashAttention 2/3 Support",
+      "description": "Memory-efficient attention mechanism for transformer-like architectures.",
+      "priority": "LOW"
+    },
+    {
+      "id": "TODO-17",
+      "repo": "llm-wiki",
+      "feature": "LLM-Powered Knowledge Base (raw -> wiki -> schema)",
+      "description": "Three-layer architecture: raw/ (immutable sources) → wiki/ (LLM-generated pages) → CLAUDE.md (schema). Ingest/Query/Lint operations. Cross-linked wiki maintained by LLM.",
+      "priority": "MEDIUM",
+      "notes": "Could serve as Van Nueman's documentation pipeline."
+    },
+    {
+      "id": "TODO-18",
+      "repo": "llm-wiki",
+      "feature": "MCP Server + Obsidian Integration",
+      "description": "MCP server compatible knowledge base. Obsidian vault integration. Spaced repetition flashcards, Mermaid diagrams, Dataview dashboard.",
+      "priority": "LOW"
+    },
+    {
+      "id": "TODO-19",
+      "repo": "NemoClaw",
+      "feature": "Sandboxed Agent Runtime (Landlock + seccomp + netns)",
+      "description": "Secure agent execution with Landlock FS restrictions, seccomp syscall filtering, and network namespace isolation. Capability drops, process limits.",
+      "priority": "HIGH",
+      "notes": "Critical for safely running untrusted agent code. Van Nueman has no sandboxing."
+    },
+    {
+      "id": "TODO-20",
+      "repo": "NemoClaw",
+      "feature": "Network Policy Management",
+      "description": "Baseline network rules, operator approval for egress, egress control policies for agents.",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TODO-21",
+      "repo": "skills",
+      "feature": "Standardized Agent Skill Catalog",
+      "description": "117+ NVIDIA-verified portable skill instruction sets (SKILL.md format). Open Agent Skills spec. Skills for CUDA-Q, cuOpt, Megatron, NeMo, TensorRT-LLM.",
+      "priority": "MEDIUM",
+      "notes": "Standard format for agent capability discovery."
+    },
+    {
+      "id": "TODO-22",
+      "repo": "Ising-Decoding",
+      "feature": "AI Quantum Error C

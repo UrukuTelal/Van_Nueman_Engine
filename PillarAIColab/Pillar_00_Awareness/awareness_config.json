@@ -1,0 +1,34 @@
+{
+  "pillar_metadata": {
+    "name": "Awareness",
+    "index": 0,
+    "core_function": "Intelligence / Analytics",
+    "description": "The capacity to detect, differentiate, and contextualize reality; the precondition for action."
+  },
+  "operational_constants": {
+    "sampling_rate": 1.0,
+    "resolution_limit": 0.01,
+    "perception_delay": 0.0,
+    "snr_threshold": 0.5
+  },
+  "logic_mechanics": {
+    "environmental_sampling": {
+      "formula": "e.internal_state[pillar] = sample(field[pillar], e.position) * e.awareness",
+      "impact": "Determines the accuracy of the unit's model of reality."
+    },
+    "governance_gate": {
+      "formula": "if awareness < threshold: reject_decision()",
+      "impact": "Decisions are only valid if based on accurate awareness data."
+    }
+  },
+  "failure_modes": {
+    "ignorance": {
+      "condition": "Awareness < 0.1",
+      "result": "Unit perpetuates harm because it cannot perceive the consequences of its actions."
+    },
+    "paralysis": {
+      "condition": "Awareness > 0.95 && Willpower < 0.2",
+      "result": "Over-analysis; the unit perceives too much noise and cannot commit to a trajectory."
+    }
+  }
+}

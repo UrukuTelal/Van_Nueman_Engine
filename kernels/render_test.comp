@@ -1,0 +1,29 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0) uniform UBO {
+    vec3 position;
+    float fov;
+    vec3 forward;
+    float aspect;
+    vec3 right;
+    float _pad1;
+    vec3 up;
+    float _pad2;
+    uint width;
+    uint height;
+    uint _pad3[2];
+} camera;
+
+layout(binding = 1, r8ui) uniform readonly uimageBuffer svoBuffer;
+layout(binding = 2, rgba8) uniform writeonly image2D outputImg;
+
+void main() {
+    uvec2 gid = gl_GlobalInvocationID.xy;
+    if (gid.x >= camera.width || gid.y >= camera.height) return;
+    
+    // Simple test: fill entire image with solid BLUE
+    imageStore(outputImg, ivec2(gid), vec4(0.0, 0.0, 1.0, 1.0));
+}
