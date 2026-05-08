@@ -1,0 +1,38 @@
+# Build outputs
+build/
+cmake-build-*/
+
+# Compiled binaries
+*.exe
+*.lib
+*.dll
+*.so
+*.o
+*.obj
+*.a
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# LLVM build artifacts
+llvm-build/
+llvm-project/
+
+# Temp files
+*.tmp
+*.temp
