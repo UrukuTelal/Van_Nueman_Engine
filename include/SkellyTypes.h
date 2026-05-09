@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <vector>
 #include <string>
 #include "Entity.h"
@@ -338,3 +339,5 @@ inline float InterstitialFluid::calculate_turgor(const std::vector<MuscleGroup*>
     segment->flexibility = std::max(0.01f, 0.1f / pressure);
     return pressure;
 }
+
+

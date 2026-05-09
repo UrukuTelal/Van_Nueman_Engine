@@ -236,14 +236,22 @@ set(AUDIO_SOURCES
     audio/wht_packet.cpp
 )
 
-# Rendering library sources (NEW: opacity renderer)
+# Rendering library sources (NEW: opacity renderer, creature renderer)
 set(RENDERING_SOURCES
     rendering/opacity_renderer.cpp
+    rendering/creature_renderer.cpp
 )
 
-# Biology library sources (NEW)
+# Biology library sources (NEW: creature system)
 set(BIOLOGY_SOURCES
     biology/biological_system.cpp
+    biology/creature_system.cpp
+)
+
+# Simulation library sources (NEW: alife growth)
+set(SIMULATION_SOURCES
+    simulation/tick_loop.cpp
+    simulation/alife_growth.cpp
 )
 
 # GUI library sources (NEW: collaboration window)

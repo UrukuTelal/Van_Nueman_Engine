@@ -29,7 +29,7 @@ void SimulationTickLoop::build_spatial_hash() {
     for (size_t i = 0; i < agents_.size(); i++) {
         if (!agents_[i].active) continue;
         int cx, cy, cz;
-        get_cell_coords(agents_[i].x, agents_[i].y, agents[i].z, cx, cy, cz);
+        get_cell_coords(agents_[i].x, agents_[i].y, agents_[i].z, cx, cy, cz);
         SpatialHashKey key = hash_cell(cx, cy, cz);
         spatial_hash_[key].push_back(static_cast<int>(i));
     }
@@ -46,10 +46,11 @@ void SimulationTickLoop::query_nearby_agents(const Agent& agent, int* nearby_ind
         for (int dy = -radius_in_cells; dy <= radius_in_cells; dy++) {
             for (int dz = -radius_in_cells; dz <= radius_in_cells; dz++) {
                 int neighbor_id = hash_cell(center_cx + dx, center_cy + dy, center_cz + dz);
-                if (spatial_hash_.find(neighbor_id) != spatial_hash_.end()) {
-                    const std::vector<int>& neighbors = spatial_hash_[neighbor_id];
+                auto it = spatial_hash_.find(neighbor_id);
+                if (it != spatial_hash_.end()) {
+                    const std::vector<int>& neighbors = it->second;
                     for (int neighbor : neighbors) {
-                        if (neighbor == static_cast<int>(agent)) continue;
+                        if (neighbor == agent.id) continue;
                         nearby_indices[count] = neighbor;
                         count++;
                         if (count >= max_nearby) return;
@@ -58,7 +59,6 @@ void SimulationTickLoop::query_nearby_agents(const Agent& agent, int* nearby_ind
             }
         }
     }
-    if (!neighbor_ids.empty()) return;
 }
 
 void SimulationTickLoop::gather_resources(Agent& agent) {
@@ -126,7 +126,7 @@ void SimulationTickLoop::form_groups() {
     for (size_t i = 0; i < agents_.size(); i++) {
         if (!agents_[i].active) continue;
         int cx, cy, cz;
-        get_cell_coords(agents_[i].x, agents_[i].y, agents[i].z, cx, cy, cz);
+        get_cell_coords(agents_[i].x, agents_[i].y, agents_[i].z, cx, cy, cz);
         SpatialHashKey key = hash_cell(cx, cy, cz);
         spatial_hash_[key].push_back(static_cast<int>(i));
     }

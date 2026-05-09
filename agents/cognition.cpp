@@ -3,19 +3,29 @@
 #include <cmath>
 #include <iostream>
 
-AgentCognition::AgentCognition(int agent_id) 
-    : agent_id_(agent_id) {
-    // Initialize with default pillar values (center)
+AgentCognition::AgentCognition(int agent_id)
+    : agent_id_(agent_id), tick_count_(0), rng_(std::random_device{}()) {
     current_state_.pillars.fill(0.5f);
     current_state_.distortion_level = 0.0f;
     current_state_.tick_count = 0;
-    
-    // Set some initial variations per agent
-    current_state_.pillars[0] = 0.7f;  // Awareness - high
-    current_state_.pillars[1] = 0.6f;  // Willpower
-    current_state_.pillars[2] = 0.5f;  // Force
-    current_state_.pillars[12] = 0.1f; // Harm - low
-    current_state_.pillars[13] = 0.05f; // Distortion - very low
+
+    current_state_.pillars[0] = 0.7f;
+    current_state_.pillars[1] = 0.6f;
+    current_state_.pillars[2] = 0.5f;
+    current_state_.pillars[12] = 0.1f;
+    current_state_.pillars[13] = 0.05f;
+
+    dream_state_.shadow_patterns.fill(0.0f);
+    dream_state_.lucid_level = 0.0f;
+    dream_state_.rem_cycles = 0;
+    dream_state_.is_dreaming = false;
+    dream_state_.current_level = DreamLevel::LIGHT;
+    dream_state_.dream_start_tick = 0;
+    dream_state_.subconscious_drift_rate = 0.001f;
+
+    for (int i = 0; i < 4; i++) {
+        dream_state_.shadow_patterns[i] = 0.3f + (static_cast<float>(rng_()) / rng_.max()) * 0.2f;
+    }
 }
 
 AgentCognition::~AgentCognition() = default;
@@ -55,15 +65,17 @@ void AgentCognition::perceive_environment(float temperature, float hazard_level,
 }
 
 void AgentCognition::update(float delta_time) {
-    current_state_.tick_count++;
-    
-    // Apply pillar constraints
+    tick_count_++;
+    current_state_.tick_count = tick_count_;
+
     apply_pillar_constraints();
-    
-    // Detect distortion
+
     current_state_.distortion_level = detect_distortion();
-    
-    // Store state in memory
+
+    dream_cycle();
+
+    apply_subconscious_drift(delta_time);
+
     store_memory(current_state_);
 }
 
@@ -178,8 +190,177 @@ void AgentCognition::prune_memory(uint32_t max_entries) {
 
 float AgentCognition::calculate_harm_delta() const {
     if (memory_.empty()) return 0.0f;
-    
+
     const auto& prev = memory_.back();
     float delta = current_state_.pillars[12] - prev.pillars[12];
     return std::max(0.0f, delta - current_state_.pillars[4] - current_state_.pillars[5]);
+}
+
+void AgentCognition::enter_dream(DreamLevel level) {
+    if (dream_state_.is_dreaming) return;
+
+    dream_state_.is_dreaming = true;
+    dream_state_.current_level = level;
+    dream_state_.dream_start_tick = tick_count_;
+
+    switch (level) {
+        case DreamLevel::LIGHT:
+            dream_state_.lucid_level = 0.3f;
+            break;
+        case DreamLevel::DEEP:
+            dream_state_.lucid_level = 0.6f;
+            break;
+        case DreamLevel::LUCID:
+            dream_state_.lucid_level = 1.0f;
+            break;
+    }
+
+    DreamEpisode episode;
+    episode.scenario = "Entering dream state";
+    episode.emotional_valence = 0.5f;
+    episode.resolution = ResolutionState::UNRESOLVED;
+    episode.duration_ticks = 0;
+    episode.simulated_pillars = current_state_.pillars;
+    dream_state_.dream_content.push_back(episode);
+}
+
+void AgentCognition::process_shadow() {
+    if (!dream_state_.is_dreaming) return;
+
+    float influence = dream_state_.lucid_level * 0.1f;
+
+    for (int i = 0; i < NUM_PILLARS; i++) {
+        float shadow_delta = (current_state_.pillars[i] - dream_state_.shadow_patterns[i]) * influence;
+        dream_state_.shadow_patterns[i] += shadow_delta * 0.05f;
+        dream_state_.shadow_patterns[i] = std::clamp(dream_state_.shadow_patterns[i], 0.0f, 1.0f);
+    }
+
+    if (dream_state_.rem_cycles < 10) {
+        std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+        if (dist(rng_) < 0.1f) {
+            dream_state_.rem_cycles++;
+        }
+    }
+}
+
+void AgentCognition::wake_up() {
+    if (!dream_state_.is_dreaming) return;
+
+    for (int i = 0; i < NUM_PILLARS; i++) {
+        float integration = dream_state_.shadow_patterns[i] * (1.0f - dream_state_.lucid_level * 0.5f);
+        current_state_.pillars[i] = current_state_.pillars[i] * 0.7f + integration * 0.3f;
+    }
+
+    if (!dream_state_.dream_content.empty()) {
+        auto& last_episode = dream_state_.dream_content.back();
+        last_episode.resolution = ResolutionState::COMPLETE;
+        last_episode.duration_ticks = tick_count_ - dream_state_.dream_start_tick;
+    }
+
+    dream_state_.is_dreaming = false;
+    dream_state_.lucid_level = 0.0f;
+}
+
+void AgentCognition::dream_cycle() {
+    if (!dream_state_.is_dreaming) {
+        std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+        if (dist(rng_) < 0.02f) {
+            enter_dream(DreamLevel::LIGHT);
+        }
+        return;
+    }
+
+    if (dream_state_.dream_content.empty()) return;
+
+    auto& current_episode = dream_state_.dream_content.back();
+    generate_dream_scenario(current_episode);
+    process_shadow();
+    process_dream_resolution(current_episode);
+
+    if (current_episode.duration_ticks > 50 && current_episode.resolution != ResolutionState::UNRESOLVED) {
+        if (dream_state_.lucid_level < 1.0f && dream_state_.rem_cycles > 3) {
+            dream_state_.current_level = DreamLevel::DEEP;
+            dream_state_.lucid_level = 0.6f;
+        }
+    }
+}
+
+void AgentCognition::apply_subconscious_drift(float delta_time) {
+    if (tick_count_ < 100) return;
+
+    float drift = dream_state_.subconscious_drift_rate * delta_time;
+
+    for (int i = 0; i < NUM_PILLARS; i++) {
+        if (i < 4) {
+            float historical_avg = 0.5f;
+            if (memory_.size() >= 10) {
+                size_t start_idx = memory_.size() - 10;
+                float sum = 0.0f;
+                for (size_t j = start_idx; j < memory_.size(); j++) {
+                    sum += memory_[j].pillars[i];
+                }
+                historical_avg = sum / 10.0f;
+            }
+
+            float drift_direction = (historical_avg - current_state_.pillars[i]) * drift;
+            dream_state_.shadow_patterns[i] += drift_direction * 0.1f;
+            dream_state_.shadow_patterns[i] = std::clamp(dream_state_.shadow_patterns[i], 0.0f, 1.0f);
+        }
+    }
+}
+
+void AgentCognition::generate_dream_scenario(DreamEpisode& episode) {
+    std::uniform_int_distribution<int> scenario_dist(0, 5);
+    int scenario_type = scenario_dist(rng_);
+
+    switch (scenario_type) {
+        case 0:
+            episode.scenario = "Exploring unknown territory";
+            episode.emotional_valence = 0.6f;
+            break;
+        case 1:
+            episode.scenario = "Encountering other agents";
+            episode.emotional_valence = 0.5f;
+            break;
+        case 2:
+            episode.scenario = "Building or constructing";
+            episode.emotional_valence = 0.7f;
+            break;
+        case 3:
+            episode.scenario = "Facing hazardous situation";
+            episode.emotional_valence = 0.3f;
+            break;
+        case 4:
+            episode.scenario = "Resource gathering";
+            episode.emotional_valence = 0.6f;
+            break;
+        case 5:
+            episode.scenario = "Social interaction";
+            episode.emotional_valence = 0.5f;
+            break;
+    }
+
+    for (int i = 0; i < NUM_PILLARS; i++) {
+        std::uniform_real_distribution<float> perturbation(-0.1f, 0.1f);
+        episode.simulated_pillars[i] = current_state_.pillars[i] + perturbation(rng_);
+        episode.simulated_pillars[i] = std::clamp(episode.simulated_pillars[i], 0.0f, 1.0f);
+    }
+}
+
+void AgentCognition::process_dream_resolution(DreamEpisode& episode) {
+    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+    float resolution_chance = 0.3f + dream_state_.lucid_level * 0.4f;
+
+    if (dist(rng_) < resolution_chance) {
+        if (episode.emotional_valence > 0.6f) {
+            episode.resolution = ResolutionState::COMPLETE;
+        } else if (episode.emotional_valence > 0.4f) {
+            episode.resolution = ResolutionState::PARTIAL;
+        } else {
+            episode.resolution = ResolutionState::ABORTED;
+        }
+    }
+
+    episode.duration_ticks++;
 }

@@ -1,0 +1,43 @@
+#version 450
+
+#define NUM_PILLARS 16
+
+struct EntityPSV {
+    float pillars[NUM_PILLARS];
+    float shadow_patterns[NUM_PILLARS];
+    float lucid_level;
+    float vividness;
+    float shadow_emergence;
+    float dream_probability;
+    float integrity;
+};
+
+layout(set = 0, binding = 0) buffer EntityBuffer {
+    EntityPSV entities[];
+} inout_entities;
+
+layout(set = 0, binding = 1) uniform Params {
+    uint entity_count;
+    float delta_time;
+    uint mode;
+} params;
+
+void main() {
+    uint id = gl_GlobalInvocationID.x;
+    if (id >= params.entity_count) return;
+
+    EntityPSV e = inout_entities.entities[id];
+
+    // Calculate harm average (pillars 6-11)
+    float harm_avg = (e.pillars[6] + e.pillars[7] + e.pillars[8] +
+                      e.pillars[9] + e.pillars[10] + e.pillars[11]) / 6.0;
+
+    // Process shadow patterns
+    for (int i = 0; i < NUM_PILLARS; i++) {
+        float drift = (e.pillars[i] - e.shadow_patterns[i]) * harm_avg * params.delta_time * 0.01;
+        e.shadow_patterns[i] += drift;
+        e.shadow_patterns[i] = clamp(e.shadow_patterns[i], -1.0, 1.0);
+    }
+
+    inout_entities.entities[id] = e;
+}

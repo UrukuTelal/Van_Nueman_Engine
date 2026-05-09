@@ -9,10 +9,11 @@ using PillarVector = std::array<float, NUM_PILLARS>;
 
 struct AgentInfo {
     uint32_t id;
-    float x, y, z;          // Position
-    float vx, vy, vz;       // Velocity
-    PillarVector pillars;    // 16-dimensional pillar state
-    bool active;              // Whether agent is active
+    float x, y, z;
+    float vx, vy, vz;
+    PillarVector pillars;
+    PillarVector shadow_state;
+    bool active;
 };
 
 #endif // VAN_NUEMAN_AGENTS_AGENT_INFO_H

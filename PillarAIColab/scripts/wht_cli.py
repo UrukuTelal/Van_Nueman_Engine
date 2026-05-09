@@ -709,6 +709,9 @@ class WHTTerminalHandler(BaseHTTPRequestHandler):
         if lower == "auto" or lower.startswith("auto "):
             self._handle_auto(user_input)
             return True
+        if lower.startswith("fs ") or lower == "filesystem":
+            self._handle_filesystem(user_input)
+            return True
         if lower.startswith("research") and CURRENT_USER == "ADMIN":
             self._run_research(user_input)
             return True

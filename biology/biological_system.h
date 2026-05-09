@@ -2,13 +2,17 @@
 #define BIOLOGICAL_SYSTEM_H
 
 #include "../include/Entity.h"
+#include "organism_types.h"
+
+using Van_Nueman::OrganismBase;
 
 enum BioAction {
     FIND_FOOD,
     REPRODUCE,
     BUILD_SHELTER,
     EAT,
-    REST
+    REST,
+    SELECT_BASE  // Player must choose Carbon/Silicon/Hybrid
 };
 
 struct BioState {
@@ -16,6 +20,7 @@ struct BioState {
     float last_meal_time;   // Time since last meal
     uint32_t offspring_count; // Total offspring created
     bool has_shelter;      // Currently in shelter
+    OrganismBase organism_base;  // Carbon/Silicon/Hybrid - player choice
 };
 
 void update_biology(Entity* entity, float dt, BioState* bio);

@@ -1,0 +1,66 @@
+#version 450
+
+#define NUM_PILLARS 16
+#define MAX_ENTITIES 1024
+
+struct EntityPSV {
+    float pillars[NUM_PILLARS];
+    float shadow_patterns[NUM_PILLARS];
+    float lucid_level;
+    float vividness;
+    float shadow_emergence;
+    float dream_probability;
+    float integrity;
+};
+
+struct VisualOutput {
+    float r;
+    float g;
+    float b;
+    float a;
+    float size;
+    float glow;
+    uint is_dreaming;
+};
+
+layout(set = 0, binding = 0) readonly buffer EntityBuffer {
+    EntityPSV entities[];
+} in_entities;
+
+layout(set = 0, binding = 1) writeonly buffer VisualBuffer {
+    VisualOutput visuals[];
+} out_visuals;
+
+layout(set = 0, binding = 2) uniform Params {
+    uint entity_count;
+    float delta_time;
+    uint mode; // 0 = psv_to_visual, 1 = process_shadows
+} params;
+
+void main() {
+    uint id = gl_GlobalInvocationID.x;
+    if (id >= params.entity_count) return;
+
+    EntityPSV e = in_entities.entities[id];
+    VisualOutput v;
+
+    // PSV to Visual mapping
+    float awareness = (e.pillars[0] + e.pillars[1] + e.pillars[2] +
+                       e.pillars[3] + e.pillars[4] + e.pillars[5]) / 6.0;
+    float harm = (e.pillars[6] + e.pillars[7] + e.pillars[8] +
+                  e.pillars[9] + e.pillars[10] + e.pillars[11]) / 6.0;
+    float depth = (e.pillars[12] + e.pillars[13] + e.pillars[14] + e.pillars[15]) / 4.0;
+
+    float dream_influence = e.vividness * e.lucid_level;
+    float shadow_influence = e.shadow_emergence * (e.lucid_level * 0.5);
+
+    v.r = clamp(awareness + dream_influence, 0.0, 1.0);
+    v.g = clamp(harm + shadow_influence, 0.0, 1.0);
+    v.b = clamp(depth + e.lucid_level * 0.3, 0.0, 1.0);
+    v.a = clamp(e.integrity * (1.0 - e.lucid_level * 0.3), 0.0, 1.0);
+    v.size = 1.0 + depth * 2.0 + e.lucid_level * 0.5;
+    v.glow = e.lucid_level * 0.5 + e.shadow_emergence * 0.3;
+    v.is_dreaming = (e.lucid_level > 0.1) ? 1 : 0;
+
+    out_visuals.visuals[id] = v;
+}

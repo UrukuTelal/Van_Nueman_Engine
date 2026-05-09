@@ -17,7 +17,7 @@ static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdat
 }
 #endif
 
-LLMBridge::LLMBridge() : ollama_url(DEFAULT_OLLAMA_URL), curl_handle(nullptr) {
+LLMBridge::LLMBridge() : ollama_url_(DEFAULT_OLLAMA_URL), curl_handle_(nullptr) {
 }
 
 LLMBridge::~LLMBridge() {

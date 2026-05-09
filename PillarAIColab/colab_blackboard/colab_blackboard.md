@@ -16,6 +16,1048 @@ Every agent action MUST append a log entry with:
 
 <!-- LOG_START -->
 
+### [2026-05-09T02:43:26.938797+00:00] van_nueman_api
+- **Task**: Created file entity: integration_test.tmp
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: integration_test.tmp, Size: 28 bytes
+
+
+### [2026-05-09T02:43:26.928558+00:00] van_nueman_api
+- **Task**: Created file entity: memory_compression.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\__pycache__\memory_compression.cpython-314.pyc, Size: 3742 bytes
+
+
+### [2026-05-09T02:43:26.915964+00:00] van_nueman_api
+- **Task**: Created file entity: memory_compression.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\__pycache__\memory_compression.cpython-311.pyc, Size: 4508 bytes
+
+
+### [2026-05-09T02:43:26.905149+00:00] van_nueman_api
+- **Task**: Created file entity: main.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\__pycache__\main.cpython-314.pyc, Size: 21219 bytes
+
+
+### [2026-05-09T02:43:26.897150+00:00] van_nueman_api
+- **Task**: Created file entity: main.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\__pycache__\main.cpython-311.pyc, Size: 25041 bytes
+
+
+### [2026-05-09T02:43:26.887107+00:00] van_nueman_api
+- **Task**: Created file entity: top_level.txt
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\van_nueman.egg-info\top_level.txt, Size: 24 bytes
+
+
+### [2026-05-09T02:43:26.879107+00:00] van_nueman_api
+- **Task**: Created file entity: SOURCES.txt
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\van_nueman.egg-info\SOURCES.txt, Size: 301 bytes
+
+
+### [2026-05-09T02:43:26.869088+00:00] van_nueman_api
+- **Task**: Created file entity: requires.txt
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\van_nueman.egg-info\requires.txt, Size: 99 bytes
+
+
+### [2026-05-09T02:43:26.858163+00:00] van_nueman_api
+- **Task**: Created file entity: PKG-INFO
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\van_nueman.egg-info\PKG-INFO, Size: 400 bytes
+
+
+### [2026-05-09T02:43:26.849163+00:00] van_nueman_api
+- **Task**: Created file entity: dependency_links.txt
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\van_nueman.egg-info\dependency_links.txt, Size: 1 bytes
+
+
+### [2026-05-09T02:43:26.839151+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\sandbox\__pycache__\__init__.cpython-314.pyc, Size: 248 bytes
+
+
+### [2026-05-09T02:43:26.829152+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\sandbox\__pycache__\__init__.cpython-311.pyc, Size: 293 bytes
+
+
+### [2026-05-09T02:43:26.814582+00:00] van_nueman_api
+- **Task**: Created file entity: runtime.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\sandbox\__pycache__\runtime.cpython-314.pyc, Size: 10226 bytes
+
+
+### [2026-05-09T02:43:26.802098+00:00] van_nueman_api
+- **Task**: Created file entity: runtime.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\sandbox\__pycache__\runtime.cpython-311.pyc, Size: 9810 bytes
+
+
+### [2026-05-09T02:43:26.789993+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\sandbox\__pycache__
+
+
+### [2026-05-09T02:43:26.773386+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\sandbox\__init__.py, Size: 84 bytes
+
+
+### [2026-05-09T02:43:26.761385+00:00] van_nueman_api
+- **Task**: Created file entity: runtime.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\sandbox\runtime.py, Size: 5458 bytes
+
+
+### [2026-05-09T02:43:26.745768+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\reasoning\__pycache__\__init__.cpython-314.pyc, Size: 235 bytes
+
+
+### [2026-05-09T02:43:26.731980+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\reasoning\__pycache__\__init__.cpython-311.pyc, Size: 274 bytes
+
+
+### [2026-05-09T02:43:26.723957+00:00] van_nueman_api
+- **Task**: Created file entity: hierarchical.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\reasoning\__pycache__\hierarchical.cpython-314.pyc, Size: 4183 bytes
+
+
+### [2026-05-09T02:43:26.692614+00:00] van_nueman_api
+- **Task**: Created file entity: hierarchical.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\reasoning\__pycache__\hierarchical.cpython-311.pyc, Size: 3696 bytes
+
+
+### [2026-05-09T02:43:26.692614+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\reasoning\__pycache__
+
+
+### [2026-05-09T02:43:26.685249+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\reasoning\__init__.py, Size: 83 bytes
+
+
+### [2026-05-09T02:43:26.677249+00:00] van_nueman_api
+- **Task**: Created file entity: hierarchical.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\reasoning\hierarchical.py, Size: 2064 bytes
+
+
+### [2026-05-09T02:43:26.668248+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\__init__.cpython-314.pyc, Size: 443 bytes
+
+
+### [2026-05-09T02:43:26.659227+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\__init__.cpython-311.pyc, Size: 543 bytes
+
+
+### [2026-05-09T02:43:26.648978+00:00] van_nueman_api
+- **Task**: Created file entity: trajectory.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\trajectory.cpython-314.pyc, Size: 2807 bytes
+
+
+### [2026-05-09T02:43:26.638963+00:00] van_nueman_api
+- **Task**: Created file entity: trajectory.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\trajectory.cpython-311.pyc, Size: 2935 bytes
+
+
+### [2026-05-09T02:43:26.629964+00:00] van_nueman_api
+- **Task**: Created file entity: skill_system.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\skill_system.cpython-314.pyc, Size: 6357 bytes
+
+
+### [2026-05-09T02:43:26.615219+00:00] van_nueman_api
+- **Task**: Created file entity: skill_system.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\skill_system.cpython-311.pyc, Size: 6328 bytes
+
+
+### [2026-05-09T02:43:26.609337+00:00] van_nueman_api
+- **Task**: Created file entity: memory_manager.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\memory_manager.cpython-314.pyc, Size: 2696 bytes
+
+
+### [2026-05-09T02:43:26.600543+00:00] van_nueman_api
+- **Task**: Created file entity: memory_manager.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\memory_manager.cpython-311.pyc, Size: 2359 bytes
+
+
+### [2026-05-09T02:43:26.581815+00:00] van_nueman_api
+- **Task**: Created file entity: context_compressor.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\context_compressor.cpython-314.pyc, Size: 4310 bytes
+
+
+### [2026-05-09T02:43:26.580307+00:00] van_nueman_api
+- **Task**: Created file entity: context_compressor.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__\context_compressor.cpython-311.pyc, Size: 4147 bytes
+
+
+### [2026-05-09T02:43:26.569306+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__pycache__
+
+
+### [2026-05-09T02:43:26.559191+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\__init__.py, Size: 321 bytes
+
+
+### [2026-05-09T02:43:26.547844+00:00] van_nueman_api
+- **Task**: Created file entity: trajectory.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\trajectory.py, Size: 994 bytes
+
+
+### [2026-05-09T02:43:26.538026+00:00] van_nueman_api
+- **Task**: Created file entity: skill_system.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\skill_system.py, Size: 3182 bytes
+
+
+### [2026-05-09T02:43:26.525870+00:00] van_nueman_api
+- **Task**: Created file entity: memory_manager.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\memory_manager.py, Size: 877 bytes
+
+
+### [2026-05-09T02:43:26.520566+00:00] van_nueman_api
+- **Task**: Created file entity: context_compressor.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning\context_compressor.py, Size: 2165 bytes
+
+
+### [2026-05-09T02:43:26.512566+00:00] van_nueman_api
+- **Task**: Created file entity: entity_manager.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\filesystem\__pycache__\entity_manager.cpython-314.pyc, Size: 24037 bytes
+
+
+### [2026-05-09T02:43:26.503567+00:00] van_nueman_api
+- **Task**: Created file entity: entity_manager.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\filesystem\__pycache__\entity_manager.cpython-311.pyc, Size: 26048 bytes
+
+
+### [2026-05-09T02:43:26.493575+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\filesystem\__pycache__
+
+
+### [2026-05-09T02:43:26.481370+00:00] van_nueman_api
+- **Task**: Created file entity: entity_manager.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\filesystem\entity_manager.py, Size: 19777 bytes
+
+
+### [2026-05-09T02:43:26.473169+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\__init__.cpython-314.pyc, Size: 495 bytes
+
+
+### [2026-05-09T02:43:26.464973+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\__init__.cpython-311.pyc, Size: 610 bytes
+
+
+### [2026-05-09T02:43:26.449261+00:00] van_nueman_api
+- **Task**: Created file entity: runtime.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\runtime.cpython-314.pyc, Size: 3435 bytes
+
+
+### [2026-05-09T02:43:26.442526+00:00] van_nueman_api
+- **Task**: Created file entity: runtime.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\runtime.cpython-311.pyc, Size: 3395 bytes
+
+
+### [2026-05-09T02:43:26.431787+00:00] van_nueman_api
+- **Task**: Created file entity: null.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\null.cpython-314.pyc, Size: 2662 bytes
+
+
+### [2026-05-09T02:43:26.424287+00:00] van_nueman_api
+- **Task**: Created file entity: null.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\null.cpython-311.pyc, Size: 2372 bytes
+
+
+### [2026-05-09T02:43:26.416339+00:00] van_nueman_api
+- **Task**: Created file entity: local.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\local.cpython-314.pyc, Size: 5475 bytes
+
+
+### [2026-05-09T02:43:26.408389+00:00] van_nueman_api
+- **Task**: Created file entity: local.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\local.cpython-311.pyc, Size: 4784 bytes
+
+
+### [2026-05-09T02:43:26.399388+00:00] van_nueman_api
+- **Task**: Created file entity: event_bus.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\event_bus.cpython-314.pyc, Size: 2110 bytes
+
+
+### [2026-05-09T02:43:26.381882+00:00] van_nueman_api
+- **Task**: Created file entity: event_bus.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\event_bus.cpython-311.pyc, Size: 1881 bytes
+
+
+### [2026-05-09T02:43:26.379932+00:00] van_nueman_api
+- **Task**: Created file entity: contracts.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\contracts.cpython-314.pyc, Size: 2835 bytes
+
+
+### [2026-05-09T02:43:26.370626+00:00] van_nueman_api
+- **Task**: Created file entity: contracts.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__\contracts.cpython-311.pyc, Size: 1981 bytes
+
+
+### [2026-05-09T02:43:26.361567+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__pycache__
+
+
+### [2026-05-09T02:43:26.350456+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\__init__.py, Size: 400 bytes
+
+
+### [2026-05-09T02:43:26.340718+00:00] van_nueman_api
+- **Task**: Created file entity: runtime.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\runtime.py, Size: 1692 bytes
+
+
+### [2026-05-09T02:43:26.332671+00:00] van_nueman_api
+- **Task**: Created file entity: null.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\null.py, Size: 1107 bytes
+
+
+### [2026-05-09T02:43:26.312549+00:00] van_nueman_api
+- **Task**: Created file entity: local.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\local.py, Size: 2923 bytes
+
+
+### [2026-05-09T02:43:26.312069+00:00] van_nueman_api
+- **Task**: Created file entity: event_bus.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\event_bus.py, Size: 679 bytes
+
+
+### [2026-05-09T02:43:26.302207+00:00] van_nueman_api
+- **Task**: Created file entity: contracts.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis\contracts.py, Size: 485 bytes
+
+
+### [2026-05-09T02:43:26.293171+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\__pycache__
+
+
+### [2026-05-09T02:43:26.283617+00:00] van_nueman_api
+- **Task**: Created directory entity: van_nueman.egg-info
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\van_nueman.egg-info
+
+
+### [2026-05-09T02:43:26.272704+00:00] van_nueman_api
+- **Task**: Created directory entity: sandbox
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\sandbox
+
+
+### [2026-05-09T02:43:26.261606+00:00] van_nueman_api
+- **Task**: Created directory entity: reasoning
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\reasoning
+
+
+### [2026-05-09T02:43:26.251370+00:00] van_nueman_api
+- **Task**: Created file entity: memory_compression.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\memory_compression.py, Size: 1635 bytes
+
+
+### [2026-05-09T02:43:26.242133+00:00] van_nueman_api
+- **Task**: Created file entity: main.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\main.py, Size: 16915 bytes
+
+
+### [2026-05-09T02:43:26.233132+00:00] van_nueman_api
+- **Task**: Created directory entity: learning
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\learning
+
+
+### [2026-05-09T02:43:26.224917+00:00] van_nueman_api
+- **Task**: Created directory entity: filesystem
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\filesystem
+
+
+### [2026-05-09T02:43:26.215917+00:00] van_nueman_api
+- **Task**: Created directory entity: autopoiesis
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src\autopoiesis
+
+
+### [2026-05-09T02:43:26.205368+00:00] van_nueman_api
+- **Task**: Created file entity: wht_signal_20260509_013104.npy
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\Pillar_10_Memory\signals\wht_signal_20260509_013104.npy, Size: 384 bytes
+
+
+### [2026-05-09T02:43:26.194477+00:00] van_nueman_api
+- **Task**: Created file entity: wht_signal_20260509_013104.json
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\Pillar_10_Memory\signals\wht_signal_20260509_013104.json, Size: 298 bytes
+
+
+### [2026-05-09T02:43:26.185481+00:00] van_nueman_api
+- **Task**: Created directory entity: signals
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\Pillar_10_Memory\signals
+
+
+### [2026-05-09T02:43:26.175470+00:00] van_nueman_api
+- **Task**: Created file entity: neural_agent.pth
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\models\neural_agent.pth, Size: 2654141 bytes
+
+
+### [2026-05-09T02:43:26.165271+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\__init__.cpython-314.pyc, Size: 559 bytes
+
+
+### [2026-05-09T02:43:26.150342+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-312.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\__init__.cpython-312.pyc, Size: 561 bytes
+
+
+### [2026-05-09T02:43:26.142183+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\__init__.cpython-311.pyc, Size: 657 bytes
+
+
+### [2026-05-09T02:43:26.137825+00:00] van_nueman_api
+- **Task**: Created file entity: search.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\search.cpython-314.pyc, Size: 7278 bytes
+
+
+### [2026-05-09T02:43:26.128821+00:00] van_nueman_api
+- **Task**: Created file entity: search.cpython-312.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\search.cpython-312.pyc, Size: 6981 bytes
+
+
+### [2026-05-09T02:43:26.119823+00:00] van_nueman_api
+- **Task**: Created file entity: search.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\search.cpython-311.pyc, Size: 7340 bytes
+
+
+### [2026-05-09T02:43:26.110821+00:00] van_nueman_api
+- **Task**: Created file entity: profiles.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\profiles.cpython-314.pyc, Size: 3219 bytes
+
+
+### [2026-05-09T02:43:26.096273+00:00] van_nueman_api
+- **Task**: Created file entity: profiles.cpython-312.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\profiles.cpython-312.pyc, Size: 3149 bytes
+
+
+### [2026-05-09T02:43:26.080424+00:00] van_nueman_api
+- **Task**: Created file entity: profiles.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\profiles.cpython-311.pyc, Size: 3428 bytes
+
+
+### [2026-05-09T02:43:26.079603+00:00] van_nueman_api
+- **Task**: Created file entity: core.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\core.cpython-314.pyc, Size: 23491 bytes
+
+
+### [2026-05-09T02:43:26.068985+00:00] van_nueman_api
+- **Task**: Created file entity: core.cpython-312.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\core.cpython-312.pyc, Size: 21666 bytes
+
+
+### [2026-05-09T02:43:26.059286+00:00] van_nueman_api
+- **Task**: Created file entity: core.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\core.cpython-311.pyc, Size: 22895 bytes
+
+
+### [2026-05-09T02:43:26.051439+00:00] van_nueman_api
+- **Task**: Created file entity: cli.cpython-312.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\cli.cpython-312.pyc, Size: 15572 bytes
+
+
+### [2026-05-09T02:43:26.043433+00:00] van_nueman_api
+- **Task**: Created file entity: bridge_sqlite.cpython-312.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\bridge_sqlite.cpython-312.pyc, Size: 10185 bytes
+
+
+### [2026-05-09T02:43:26.034433+00:00] van_nueman_api
+- **Task**: Created file entity: adaptive.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\adaptive.cpython-314.pyc, Size: 12444 bytes
+
+
+### [2026-05-09T02:43:26.025426+00:00] van_nueman_api
+- **Task**: Created file entity: adaptive.cpython-312.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\adaptive.cpython-312.pyc, Size: 12028 bytes
+
+
+### [2026-05-09T02:43:26.014550+00:00] van_nueman_api
+- **Task**: Created file entity: adaptive.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__\adaptive.cpython-311.pyc, Size: 12518 bytes
+
+
+### [2026-05-09T02:43:26.005450+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__pycache__
+
+
+### [2026-05-09T02:43:25.996446+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\__init__.py, Size: 312 bytes
+
+
+### [2026-05-09T02:43:25.987363+00:00] van_nueman_api
+- **Task**: Created file entity: search.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\search.py, Size: 5695 bytes
+
+
+### [2026-05-09T02:43:25.976361+00:00] van_nueman_api
+- **Task**: Created file entity: profiles.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\profiles.py, Size: 2727 bytes
+
+
+### [2026-05-09T02:43:25.963673+00:00] van_nueman_api
+- **Task**: Created file entity: core.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\core.py, Size: 18798 bytes
+
+
+### [2026-05-09T02:43:25.953355+00:00] van_nueman_api
+- **Task**: Created file entity: cli.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\cli.py, Size: 10462 bytes
+
+
+### [2026-05-09T02:43:25.945356+00:00] van_nueman_api
+- **Task**: Created file entity: bridge_sqlite.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\bridge_sqlite.py, Size: 8150 bytes
+
+
+### [2026-05-09T02:43:25.935424+00:00] van_nueman_api
+- **Task**: Created file entity: bridge_lance.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\bridge_lance.py, Size: 5455 bytes
+
+
+### [2026-05-09T02:43:25.926348+00:00] van_nueman_api
+- **Task**: Created file entity: bridge_honcho.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\bridge_honcho.py, Size: 7307 bytes
+
+
+### [2026-05-09T02:43:25.912876+00:00] van_nueman_api
+- **Task**: Created file entity: adaptive.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant\adaptive.py, Size: 10011 bytes
+
+
+### [2026-05-09T02:43:25.906986+00:00] van_nueman_api
+- **Task**: Created file entity: entity_manager.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\bindings\__pycache__\entity_manager.cpython-311.pyc, Size: 8448 bytes
+
+
+### [2026-05-09T02:43:25.896980+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\bindings\__pycache__
+
+
+### [2026-05-09T02:43:25.879320+00:00] van_nueman_api
+- **Task**: Created file entity: vulkan_wrapper.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\bindings\vulkan_wrapper.py, Size: 3762 bytes
+
+
+### [2026-05-09T02:43:25.876409+00:00] van_nueman_api
+- **Task**: Created file entity: entity_manager.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\bindings\entity_manager.py, Size: 5690 bytes
+
+
+### [2026-05-09T02:43:25.866664+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\__pycache__\__init__.cpython-311.pyc, Size: 167 bytes
+
+
+### [2026-05-09T02:43:25.857125+00:00] van_nueman_api
+- **Task**: Created file entity: pillar_ai_bridge.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\__pycache__\pillar_ai_bridge.cpython-311.pyc, Size: 3998 bytes
+
+
+### [2026-05-09T02:43:25.847127+00:00] van_nueman_api
+- **Task**: Created file entity: filesystem_api.cpython-314.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\__pycache__\filesystem_api.cpython-314.pyc, Size: 11848 bytes
+
+
+### [2026-05-09T02:43:25.834756+00:00] van_nueman_api
+- **Task**: Created file entity: filesystem_api.cpython-311.pyc
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\__pycache__\filesystem_api.cpython-311.pyc, Size: 12065 bytes
+
+
+### [2026-05-09T02:43:25.819980+00:00] van_nueman_api
+- **Task**: Created directory entity: __pycache__
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\__pycache__
+
+
+### [2026-05-09T02:43:25.800716+00:00] van_nueman_api
+- **Task**: Created file entity: __init__.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\__init__.py, Size: 35 bytes
+
+
+### [2026-05-09T02:43:25.739707+00:00] van_nueman_api
+- **Task**: Created file entity: skelly_api.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\skelly_api.py, Size: 8871 bytes
+
+
+### [2026-05-09T02:43:25.722757+00:00] van_nueman_api
+- **Task**: Created file entity: pillar_ai_bridge.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\pillar_ai_bridge.py, Size: 3586 bytes
+
+
+### [2026-05-09T02:43:25.721008+00:00] van_nueman_api
+- **Task**: Created file entity: pillars_api.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\pillars_api.py, Size: 3677 bytes
+
+
+### [2026-05-09T02:43:25.710973+00:00] van_nueman_api
+- **Task**: Created file entity: filesystem_api.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\api\filesystem_api.py, Size: 7961 bytes
+
+
+### [2026-05-09T02:43:25.703205+00:00] van_nueman_api
+- **Task**: Created file entity: test_creature.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\test_creature.py, Size: 4187 bytes
+
+
+### [2026-05-09T02:43:25.691895+00:00] van_nueman_api
+- **Task**: Created file entity: terminal_bridge.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\terminal_bridge.py, Size: 1415 bytes
+
+
+### [2026-05-09T02:43:25.681103+00:00] van_nueman_api
+- **Task**: Created directory entity: src
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\src
+
+
+### [2026-05-09T02:43:25.673355+00:00] van_nueman_api
+- **Task**: Created file entity: setup.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\setup.py, Size: 38 bytes
+
+
+### [2026-05-09T02:43:25.665360+00:00] van_nueman_api
+- **Task**: Created file entity: requirements.txt
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\requirements.txt, Size: 91 bytes
+
+
+### [2026-05-09T02:43:25.655836+00:00] van_nueman_api
+- **Task**: Created file entity: README.md
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\README.md, Size: 695 bytes
+
+
+### [2026-05-09T02:43:25.646838+00:00] van_nueman_api
+- **Task**: Created file entity: pyproject.toml
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\pyproject.toml, Size: 467 bytes
+
+
+### [2026-05-09T02:43:25.635377+00:00] van_nueman_api
+- **Task**: Created file entity: pipeline_state.json
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\pipeline_state.json, Size: 16089 bytes
+
+
+### [2026-05-09T02:43:25.624374+00:00] van_nueman_api
+- **Task**: Created directory entity: Pillar_10_Memory
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\Pillar_10_Memory
+
+
+### [2026-05-09T02:43:25.615372+00:00] van_nueman_api
+- **Task**: Created directory entity: models
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\models
+
+
+### [2026-05-09T02:43:25.599143+00:00] van_nueman_api
+- **Task**: Created file entity: fix_pillars.py
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\fix_pillars.py, Size: 1202 bytes
+
+
+### [2026-05-09T02:43:25.595023+00:00] van_nueman_api
+- **Task**: Created file entity: demo_scenarios.json
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\demo_scenarios.json, Size: 2799 bytes
+
+
+### [2026-05-09T02:43:25.587022+00:00] van_nueman_api
+- **Task**: Created directory entity: crowquant
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\crowquant
+
+
+### [2026-05-09T02:43:25.578020+00:00] van_nueman_api
+- **Task**: Created directory entity: bindings
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\bindings
+
+
+### [2026-05-09T02:43:25.561451+00:00] van_nueman_api
+- **Task**: Created directory entity: api
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Directory path: C:\Projects\Van_Nueman\Van_Nueman_Services\api
+
+
+### [2026-05-09T02:43:25.558431+00:00] van_nueman_api
+- **Task**: Created file entity: .gitignore
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\.gitignore, Size: 330 bytes
+
+
+### [2026-05-09T02:43:25.541584+00:00] van_nueman_api
+- **Task**: Created file entity: .env.example
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\.env.example, Size: 404 bytes
+
+
+### [2026-05-09T02:43:25.538259+00:00] van_nueman_api
+- **Task**: Created file entity: .env
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: File path: C:\Projects\Van_Nueman\Van_Nueman_Services\.env, Size: 201 bytes
+
+
+### [2026-05-09T02:43:25.408155+00:00] van_nueman_api
+- **Task**: SYSTEM_INTEGRATION_TEST_COMPLETE
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Van Nueman PCMSRM implementation test completed successfully
+
+
+### [2026-05-09T02:43:25.400847+00:00] test_system
+- **Task**: Create a simple test task
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+
+
+### [2026-05-09T02:43:25.399848+00:00] van_nueman_api
+- **Task**: {'agent_id': 'unknown_agent', 'task': 'Context request: Create a simple test task', 'delta_h': 0.0, 'approved': True, 'notes': 'Pillars included: None'}
+- **ΔH**: 0.0000
+- **Status**: REJECTED
+
+
+### [2026-05-09T02:42:02.889331+00:00] van_nueman_api
+- **Task**: TEST_FILESYSTEM_LOG_FROM_MANAGER
+- **ΔH**: 0.0100
+- **Status**: APPROVED
+- **Notes**: This is a test from the filesystem entity manager
+
+
+### [2026-05-09T02:40:52.630325+00:00] filesystem_test
+- **Task**: FILESYSTEM_ENTITY_CHANGE_DETECTED
+- **ΔH**: 0.0200
+- **Status**: APPROVED
+- **Notes**: Testing filesystem entity manager integration at 2026-05-09T02:40:52.519234+00:00
+
+
+### [2026-05-09T02:40:31.170552+00:00] direct_test
+- **Task**: Direct blackboard test at C:\Projects\Van_Nueman\Van_Nueman_Engine\PillarAIColab
+- **ΔH**: 0.0500
+- **Status**: APPROVED
+- **Notes**: Testing if direct logging works
+
+
+### [2026-05-09T02:04:17.773407+00:00] van_nueman_api
+- **Task**: Test logging from constraint enforcement
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+- **Notes**: Testing constraint enforcement logging
+
+
+### [2026-05-09T02:04:17.762454+00:00] van_nueman_api
+- **Task**: Create a simple task
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+
+
+### [2026-05-09T02:04:17.760447+00:00] van_nueman_api
+- **Task**: {'agent_id': 'unknown_agent', 'task': 'Context request: Create a simple task', 'delta_h': 0.0, 'approved': True, 'notes': 'Pillars included: None'}
+- **ΔH**: 0.0000
+- **Status**: REJECTED
+
+
+### [2026-05-09T02:01:39.387959+00:00] test_agent
+- **Task**: Test task for constraint checking
+- **ΔH**: 0.0000
+- **Status**: APPROVED
+
+
+### [2026-05-09T02:01:39.385953+00:00] van_nueman_api
+- **Task**: {'agent_id': 'unknown_agent', 'task': 'Context request: Test task for constraint checking', 'delta_h': 0.0, 'approved': True, 'notes': 'Pillars included: None'}
+- **ΔH**: 0.0000
+- **Status**: REJECTED
+
+
+### [2026-05-09T01:49:48.417591+00:00] van_nueman_api
+- **Task**: Test task from compatibility wrapper
+- **ΔH**: 0.0500
+- **Status**: APPROVED
+- **Notes**: Testing the fixed compatibility wrapper
+
+
+### [2026-05-09T01:46:09.282348+00:00] van_nueman_api
+- **Task**: {'agent_id': 'test_compat', 'task': 'Compat test', 'delta_h': 0.1, 'approved': True}
+- **ΔH**: 0.0000
+- **Status**: REJECTED
+
+
+### [2026-05-09T01:41:46.609337+00:00] test_direct
+- **Task**: Direct test
+- **ΔH**: 0.1000
+- **Status**: APPROVED
+
+
+### [2026-05-09T01:31:04.011919+00:00] test_agent
+- **Task**: Test task
+- **ΔH**: 0.1000
+- **Status**: APPROVED
+- **Notes**: Test note
+
+
 ### [2026-05-08T20:38:22.234462+00:00] unknown_agent
 - **Task**: Context request: Create a new standalone repo called Van_Nueman_Env in C:\Projects. This repo should be a minimal Vulkan rendering environment for the Skelly system (SDF bone raymarching).
 

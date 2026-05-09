@@ -77,11 +77,28 @@ struct EntityFlags {
     uint32_t reserved : 29;
 };
 
+// Extended UID: UID = PSV(PID) + SID(SkellyID) + HID(History)
+struct EntityUID {
+    uint32_t psv_hash;    // from PSV(PID) - identity core
+    uint32_t sid;         // Skelly structure ID - anatomy
+    uint32_t hid;        // History hash - changes over time
+    
+    uint64_t combined() const { 
+        return ((uint64_t)psv_hash << 32) | ((uint64_t)sid << 16) | hid;
+    }
+    
+    bool operator==(const EntityUID& other) const {
+        return psv_hash == other.psv_hash && 
+               sid == other.sid && 
+               hid == other.hid;
+    }
+};
+
 // Core entity structure
-// ID is derived from baseline_pillars (same PSV = same entity identity)
 struct Entity {
-    uint32_t id;              // Computed from baseline_pillars via compute_entity_id()
+    uint32_t id;
     EntityFlags flags;
+    EntityUID uid;
     
     // Position (2D for now, can extend to 3D)
     float pos_x, pos_y;
@@ -127,7 +144,6 @@ enum EntityType : uint32_t {
     ENTITY_TYPE_TRANSPORT = 4
 };
 
-// Utility functions
 inline PillarStateVector create_default_pillar_state(float default_value = 0.5f) {
     PillarStateVector state;
     state.fill(default_value);
