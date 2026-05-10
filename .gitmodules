@@ -4,6 +4,3 @@
 [submodule "whisper.cpp"]
 	path = whisper.cpp
 	url = https://github.com/UrukuTelal/Van_Nueman_Whisper.git
-[submodule "piper"]
-	path = piper
-	url = https://github.com/UrukuTelal/Van_Nueman_Piper.git
