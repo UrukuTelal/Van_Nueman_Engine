@@ -120,6 +120,8 @@ CreaturePerceptionResult AgentPerception::perceive_creature(const Creature* crea
     
     auto state = creature->get_state();
     
+    // TODO: get creature position from Creature class when available
+    // For now, creature position defaults to origin
     float creature_x = 0.0f, creature_y = 0.0f, creature_z = 0.0f;
     result.distance = distance_3d(agent_x, agent_y, agent_z, creature_x, creature_y, creature_z);
     result.size = state.scale;
@@ -136,7 +138,7 @@ CreaturePerceptionResult AgentPerception::perceive_creature(const Creature* crea
     result.a = state.pillars[PILLAR_INTEGRITY];
     
     for (int i = 0; i < 8; i++) {
-        result.creature_type_score[i] = state.pillars.pillars[i];
+        result.creature_type_score[i] = state.pillars[i];
     }
     
     return result;
@@ -228,6 +230,9 @@ void AgentPerception::world_to_chunk(float x, float y, float z,
     if (voxel_x < 0) { chunk_x--; voxel_x += CHUNK_SIZE; }
     if (voxel_y < 0) { chunk_y--; voxel_y += CHUNK_SIZE; }
     if (voxel_z < 0) { chunk_z--; voxel_z += CHUNK_SIZE; }
+    if (voxel_x >= CHUNK_SIZE) { chunk_x++; voxel_x -= CHUNK_SIZE; }
+    if (voxel_y >= CHUNK_SIZE) { chunk_y++; voxel_y -= CHUNK_SIZE; }
+    if (voxel_z >= CHUNK_SIZE) { chunk_z++; voxel_z -= CHUNK_SIZE; }
 }
 
 float AgentPerception::distance_3d(float x1, float y1, float z1,

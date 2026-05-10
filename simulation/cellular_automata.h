@@ -37,7 +37,7 @@ struct EntityID {
 };
 
 constexpr size_t MAX_CA_GRID_DIM = 4096;
-constexpr size_t MAX_ENTITIES = 65536;
+constexpr size_t MAX_CELL_ENTITIES = 65536;
 
 struct CAGridSoA {
     float* energy;
@@ -170,7 +170,7 @@ public:
     
 private:
     CAComputeDispatcher() = default;
-    ~CAComputeDispatcher();
+    ~CAComputeDispatcher() = default;
     CAComputeDispatcher(const CAComputeDispatcher&) = delete;
     CAComputeDispatcher& operator=(const CAComputeDispatcher&) = delete;
     

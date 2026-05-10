@@ -43,6 +43,9 @@ struct BoneRenderData {
 struct MuscleRenderData {
     uint32_t origin_bone;
     uint32_t insertion_bone;
+    float start_pos[3];
+    float end_pos[3];
+    float radius;
     float activation;
     float color[4];
     float thickness;

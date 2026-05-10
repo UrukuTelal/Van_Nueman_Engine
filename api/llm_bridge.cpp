@@ -8,7 +8,7 @@
 #endif
 
 // Callback for CURL to capture response
-#ifndef HAS_CURL
+#ifdef HAS_CURL
 static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata) {
     std::string* response = static_cast<std::string*>(userdata);
     size_t total = size * nmemb;
@@ -22,8 +22,8 @@ LLMBridge::LLMBridge() : ollama_url_(DEFAULT_OLLAMA_URL), curl_handle_(nullptr) 
 
 LLMBridge::~LLMBridge() {
 #ifdef HAS_CURL
-    if (curl_handle) {
-        curl_easy_cleanup(static_cast<CURL*>(curl_handle));
+    if (curl_handle_) {
+        curl_easy_cleanup(static_cast<CURL*>(curl_handle_));
     }
     curl_global_cleanup();
 #endif
@@ -35,8 +35,8 @@ bool LLMBridge::initialize() {
     if (code != CURLE_OK) {
         return false;
     }
-    curl_handle = curl_easy_init();
-    return curl_handle != nullptr;
+    curl_handle_ = curl_easy_init();
+    return curl_handle_ != nullptr;
 #else
     std::cerr << "Warning: CURL not available, LLM bridge disabled" << std::endl;
     return false;
@@ -48,7 +48,7 @@ LLMResponse LLMBridge::query(const LLMRequest& request) {
     response.success = false;
     
 #ifdef HAS_CURL
-    if (!curl_handle) {
+    if (!curl_handle_) {
         response.error_message = "LLMBridge not initialized";
         return response;
     }
@@ -60,10 +60,10 @@ LLMResponse LLMBridge::query(const LLMRequest& request) {
                 << R"(","stream":false,"options":{"temperature":)" 
                 << request.temperature << R"(,"num_predict":)" << request.max_tokens << "}}";
     
-    std::string url = ollama_url + std::string("/api/generate");
+    std::string url = ollama_url_ + std::string("/api/generate");
     std::string response_data;
     
-    CURL* curl = static_cast<CURL*>(curl_handle);
+    CURL* curl = static_cast<CURL*>(curl_handle_);
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_payload.str().c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);

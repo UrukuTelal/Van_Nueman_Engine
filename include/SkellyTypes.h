@@ -136,7 +136,7 @@ struct MuscleGroup {
     void update_volume() {
         Vec3 curr_vec = insertion->get_global_position() - origin->get_global_position();
         float curr_len = curr_vec.norm();
-        float rest_len = insertion->local_pos.norm();
+        float rest_len = (insertion->local_pos - origin->local_pos).norm();
         float expansion = (rest_len > 0) ? sqrtf(rest_len / curr_len) : 1.0f;
         
         for (auto& strand : strands) {

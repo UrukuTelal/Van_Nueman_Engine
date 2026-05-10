@@ -128,6 +128,8 @@ public:
     const Vec3& get_end() const { return end_pos_; }
     void set_end(const Vec3& pos) { end_pos_ = pos; }
     
+    float get_radius() const { return radius_; }
+    void set_radius(float r) { radius_ = r; }
     float get_flexibility() const { return flexibility_; }
     void set_flexibility(float f) { flexibility_ = f; }
     float get_break_threshold() const { return break_threshold_; }
@@ -148,6 +150,7 @@ private:
     uint32_t id_;
     Vec3 start_pos_;
     Vec3 end_pos_;
+    float radius_;
     float flexibility_ = 0.1f;
     float break_threshold_ = 100.0f;
     bool fractured_ = false;

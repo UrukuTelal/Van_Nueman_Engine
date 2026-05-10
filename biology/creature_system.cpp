@@ -90,7 +90,7 @@ void CreaturePhysics::get_constraints(float age_ratio, float& pitch_min, float& 
 }
 
 Bone::Bone(uint32_t id, const Vec3& start_pos, const Vec3& end_pos, float radius)
-    : id_(id), start_pos_(start_pos), end_pos_(end_pos) {
+    : id_(id), start_pos_(start_pos), end_pos_(end_pos), radius_(radius) {
 }
 
 void Bone::apply_force(const Vec3& force, float dt) {
@@ -180,7 +180,7 @@ Creature::~Creature() = default;
 void Creature::build_systems() {
     auto* root = skeleton_->add_node(nullptr, {0, 0, 0}, "root");
     
-    auto* spine_nodes = new SkeletonNode*[5];
+    std::array<SkeletonNode*, 5> spine_nodes{};
     for (uint32_t i = 0; i < 5; i++) {
         spine_nodes[i] = skeleton_->add_node(
             i == 0 ? root : spine_nodes[i-1],
@@ -412,7 +412,6 @@ void GrowthSystem::update(float dt) {
 void GrowthSystem::grow_creature_to_age(uint32_t entity_id, float target_age) {
     if (auto* creature = get_creature(entity_id)) {
         float old_scale = creature->get_scale();
-        creature = nullptr;
         
         auto it = std::find_if(creatures_.begin(), creatures_.end(),
             [entity_id](const std::unique_ptr<Creature>& c) {

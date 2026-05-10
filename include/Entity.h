@@ -7,11 +7,15 @@
 #include <cstdint>
 #include <cstring>
 #include <array>
+#include <cmath>
 
 // Number of pillars in PCMSRM
 #ifndef NUM_PILLARS
 #define NUM_PILLARS 16
 #endif
+
+// Pillar vector type for LLM/agent systems (std430 compatible)
+using PillarVector = std::array<float, NUM_PILLARS>;
 
 // Pillar indices (matches PillarAIColab indices)
 enum PillarIndex : uint32_t {
@@ -47,7 +51,7 @@ struct PillarStateVector {
     // Compare two PSVs for functional equality (with tolerance)
     bool equals(const PillarStateVector& other, float tolerance = 0.001f) const {
         for (int i = 0; i < NUM_PILLARS; i++) {
-            if (fabs(pillars[i] - other.pillars[i]) > tolerance) return false;
+            if (std::fabs(pillars[i] - other.pillars[i]) > tolerance) return false;
         }
         return true;
     }

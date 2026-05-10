@@ -5,8 +5,6 @@
 #include <array>
 #include "../include/Entity.h"
 
-using PillarVector = std::array<float, NUM_PILLARS>;
-
 struct AgentInfo {
     uint32_t id;
     float x, y, z;

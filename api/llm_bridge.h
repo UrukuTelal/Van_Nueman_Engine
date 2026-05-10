@@ -8,8 +8,6 @@
 #include <memory>
 #include "../include/Entity.h"
 
-using PillarVector = std::array<float, NUM_PILLARS>;
-
 enum class LLMBackend {
     OLLAMA,
     TENSORRT,

@@ -12,8 +12,6 @@
 #include "../include/Entity.h"
 #include "../api/llm_bridge.h"
 
-using PillarVector = std::array<float, NUM_PILLARS>;
-
 enum class AgentAction {
     IDLE,
     MOVE,

@@ -9,11 +9,11 @@ AgentCognition::AgentCognition(int agent_id)
     current_state_.distortion_level = 0.0f;
     current_state_.tick_count = 0;
 
-    current_state_.pillars[0] = 0.7f;
-    current_state_.pillars[1] = 0.6f;
-    current_state_.pillars[2] = 0.5f;
-    current_state_.pillars[12] = 0.1f;
-    current_state_.pillars[13] = 0.05f;
+    current_state_.pillars[PILLAR_AWARENESS] = 0.7f;
+    current_state_.pillars[PILLAR_WILLPOWER] = 0.6f;
+    current_state_.pillars[PILLAR_FORCE] = 0.5f;
+    current_state_.pillars[PILLAR_HARM] = 0.1f;
+    current_state_.pillars[PILLAR_DISTORTION] = 0.05f;
 
     dream_state_.shadow_patterns.fill(0.0f);
     dream_state_.lucid_level = 0.0f;
@@ -81,17 +81,17 @@ void AgentCognition::update(float delta_time) {
 
 void AgentCognition::apply_pillar_constraints() {
     // Harm constraint: if Harm > 0.7, reduce other pillars
-    if (current_state_.pillars[12] > 0.7f) {
-        for (int i = 0; i < 14; i++) {
-            if (i != 12) {
+    if (current_state_.pillars[PILLAR_HARM] > 0.7f) {
+        for (int i = 0; i < NUM_PILLARS; i++) {
+            if (i != PILLAR_HARM) {
                 current_state_.pillars[i] *= 0.95f;
             }
         }
     }
     
     // Distortion reduces Awareness effectiveness
-    float distortion_factor = 1.0f - current_state_.pillars[13];
-    current_state_.pillars[0] *= distortion_factor;
+    float distortion_factor = 1.0f - current_state_.pillars[PILLAR_DISTORTION];
+    current_state_.pillars[PILLAR_AWARENESS] *= distortion_factor;
 }
 
 float AgentCognition::detect_distortion() const {
@@ -99,11 +99,11 @@ float AgentCognition::detect_distortion() const {
     float distortion = 0.0f;
     
     // Check for inconsistent pillar values
-    if (current_state_.pillars[2] > 0.8f && current_state_.pillars[4] < 0.2f) {
+    if (current_state_.pillars[PILLAR_FORCE] > 0.8f && current_state_.pillars[PILLAR_RESISTANCE] < 0.2f) {
         distortion += 0.3f;  // High Force but low Resistance
     }
     
-    if (current_state_.pillars[12] > 0.5f && current_state_.pillars[5] > 0.8f) {
+    if (current_state_.pillars[PILLAR_HARM] > 0.5f && current_state_.pillars[PILLAR_INTEGRITY] > 0.8f) {
         distortion += 0.2f;  // High Harm but high Integrity (inconsistent)
     }
     
@@ -163,7 +163,7 @@ void AgentCognition::query_llm(const std::string& task, LLMBridge& bridge) {
 
 void AgentCognition::update_pillar_from_llm(const PillarVector& new_values) {
     // Blend current state with LLM suggestion
-    for (int i = 0; i < 14; i++) {
+    for (int i = 0; i < NUM_PILLARS; i++) {
         current_state_.pillars[i] = current_state_.pillars[i] * 0.7f + new_values[i] * 0.3f;
     }
 }

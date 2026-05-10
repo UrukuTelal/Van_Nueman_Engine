@@ -168,6 +168,17 @@ void CreatureRenderer::prepare_skeleton_render_data(const Skeleton* skeleton,
         MuscleRenderData muscle_data = {};
         muscle_data.origin_bone = 0;
         muscle_data.insertion_bone = 1;
+        
+        Vec3 origin_pos = muscle->origin ? muscle->origin->get_global_position() : Vec3{};
+        Vec3 insert_pos = muscle->insertion ? muscle->insertion->get_global_position() : Vec3{};
+        muscle_data.start_pos[0] = origin_pos.x;
+        muscle_data.start_pos[1] = origin_pos.y;
+        muscle_data.start_pos[2] = origin_pos.z;
+        muscle_data.end_pos[0] = insert_pos.x;
+        muscle_data.end_pos[1] = insert_pos.y;
+        muscle_data.end_pos[2] = insert_pos.z;
+        muscle_data.radius = 0.3f;
+        
         muscle_data.activation = muscle->get_activation();
         muscle_data.thickness = 0.2f * (1.0f + muscle->get_activation());
         muscle_data.strand_count = static_cast<uint32_t>(muscle->strands.size());
@@ -283,6 +294,9 @@ bool CreatureRenderer::upload_muscles_to_gpu(VulkanRenderer* renderer,
     
     for (const auto& muscle : muscles) {
         MuscleGPU m = {};
+        m.start_x = muscle.start_pos[0]; m.start_y = muscle.start_pos[1]; m.start_z = muscle.start_pos[2];
+        m.end_x = muscle.end_pos[0]; m.end_y = muscle.end_pos[1]; m.end_z = muscle.end_pos[2];
+        m.radius = muscle.radius;
         m.activation = muscle.activation;
         m.thickness = muscle.thickness;
         m.r = muscle.color[0]; m.g = muscle.color[1]; m.b = muscle.color[2]; m.a = muscle.color[3];

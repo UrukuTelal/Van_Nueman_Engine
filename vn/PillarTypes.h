@@ -51,8 +51,8 @@ inline float fmaxf(float a, float b) { return a > b ? a : b; }
 // Use std::fabs from <cmath> instead of defining fabsf
 using std::fabs;  // Use std::fabs directly
 
-// Pillar vector type
-typedef float PillarVector[16];
+// PillarVector is now defined in include/Entity.h (using std::array<float, 16>)
+// This typedef removed to avoid redefinition conflict with Entity.h
 
 // Note: ScaledInt template is defined in vn/ScaledInt.h
 // Include that file separately if needed

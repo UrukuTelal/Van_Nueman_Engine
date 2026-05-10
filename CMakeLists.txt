@@ -352,7 +352,43 @@ if(glfw3_FOUND)
     add_compile_definitions(HAVE_GLFW)
 endif()
 
-# Copy SPIR-V shaders to build directory
+# Custom LLVM -> SPIR-V pipeline for kernel compilation
+set(VNCC_EXECUTABLE "${CMAKE_SOURCE_DIR}/../Van_Nueman_Toolchain/llvm-toolchain/build/frontend/Release/vncc.exe")
+if(EXISTS "${VNCC_EXECUTABLE}")
+    # Find all kernel source files
+    file(GLOB KERNEL_SOURCES "${CMAKE_SOURCE_DIR}/kernels/*.cpp")
+    
+    # Compile each kernel .cpp to .spv using vncc
+    foreach(KERNEL_SRC ${KERNEL_SOURCES})
+        get_filename_component(KERNEL_NAME ${KERNEL_SRC} NAME_WE)
+        set(KERNEL_SPV "${CMAKE_CURRENT_BINARY_DIR}/kernels/${KERNEL_NAME}.spv")
+        
+        add_custom_command(
+            OUTPUT ${KERNEL_SPV}
+            COMMAND "${VNCC_EXECUTABLE}" -emit-spirv -I"${CMAKE_SOURCE_DIR}/vn" "${KERNEL_SRC}" -o "${KERNEL_SPV}"
+            DEPENDS "${KERNEL_SRC}" "${VNCC_EXECUTABLE}"
+            COMMENT "Compiling ${KERNEL_NAME}.cpp to SPIR-V using vncc"
+        )
+        
+        # Make sure the kernels directory exists in build
+        add_custom_command(
+            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/kernels/.dir"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/kernels"
+            DEPENDS ${KERNEL_SPV}
+        )
+        
+        # Copy generated SPIR-V to build directory for the game executable
+        add_custom_command(TARGET van-nueman-game POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${KERNEL_SPV}"
+                "$<TARGET_FILE_DIR:van-nueman-game>/kernels/${KERNEL_NAME}.spv"
+        )
+    endforeach()
+else()
+    message(WARNING "vncc.exe not found at ${VNCC_EXECUTABLE}. Skipping custom LLVM->SPIR-V pipeline.")
+endif()
+
+# Copy SPIR-V shaders to build directory (existing pre-compiled shaders)
 if(Vulkan_FOUND)
     add_custom_command(TARGET van-nueman-game POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

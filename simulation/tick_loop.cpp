@@ -51,9 +51,9 @@ void SimulationTickLoop::query_nearby_agents(const Agent& agent, int* nearby_ind
                     const std::vector<int>& neighbors = it->second;
                     for (int neighbor : neighbors) {
                         if (neighbor == agent.id) continue;
+                        if (count >= max_nearby) return;
                         nearby_indices[count] = neighbor;
                         count++;
-                        if (count >= max_nearby) return;
                     }
                 }
             }
@@ -121,6 +121,7 @@ void SimulationTickLoop::meso_tick(float delta_time) {
 
 void SimulationTickLoop::form_groups() {
     groups_.clear();
+    spatial_hash_.clear();
     
     // Simple grouping by proximity (same chunk)
     for (size_t i = 0; i < agents_.size(); i++) {
@@ -155,10 +156,10 @@ void SimulationTickLoop::update_pillar_vectors() {
         auto& pillars = agent.cognition->get_pillars();
         
         // High hazard increases Harm
-        pillars[12] = std::clamp(pillars[12] + world_state_.hazard_level * 0.01f, 0.0f, 1.0f);
+        pillars[PILLAR_HARM] = std::clamp(pillars[PILLAR_HARM] + world_state_.hazard_level * 0.01f, 0.0f, 1.0f);
         
         // Resources affect Attraction
-        pillars[11] = std::clamp(world_state_.resource_density, 0.0f, 1.0f);
+        pillars[PILLAR_ATTRACTION] = std::clamp(world_state_.resource_density, 0.0f, 1.0f);
     }
 }
 
