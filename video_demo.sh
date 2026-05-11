@@ -9,7 +9,7 @@ echo "This script outlines the steps to create a video demo of Van Nueman."
 echo ""
 
 # Configuration
-OUTPUT_DIR="C:/Projects/Van_Nueman/docs/videos"
+OUTPUT_DIR="C:/Projects/Van_Nueman_Engine/docs/videos"
 mkdir -p "$OUTPUT_DIR"
 
 # Demo scenarios to record

@@ -5,7 +5,7 @@
 RESOLUTION="1920x1080"
 FRAMERATE="60"
 DURATION="60"  # seconds per scenario
-OUTPUT_DIR="C:/Projects/Van_Nueman/docs/videos"
+OUTPUT_DIR="C:/Projects/Van_Nueman_Engine/docs/videos"
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -25,7 +25,7 @@ ffmpeg -f gdigrab -framerate $FRAMERATE -video_size $RESOLUTION -i desktop \
        -t 30 -c:v libx264 -preset fast -crf 23 \
        "$OUTPUT_DIR/pillar_hud_demo.mp4" 2>/dev/null &
 
-cd C:/Projects/Van_Nueman/build/Release
+cd C:/Projects/Van_Nueman_Engine/build/Release
 timeout 30 ./van-nueman-game.exe 2>&1 | head -20
 kill %1 2>/dev/null
 

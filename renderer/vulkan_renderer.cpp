@@ -212,9 +212,7 @@ bool VulkanRenderer::createComputePipeline() {
     std::vector<std::string> paths = {
         "kernels/render_vulkan.spv",
         "../kernels/render_vulkan.spv",
-        "render_vulkan.spv",
-        "C:/Projects/Van_Nueman/kernels/render_vulkan.spv",
-        "C:/Projects/Van_Nueman/build/Release/render_vulkan.spv"
+        "render_vulkan.spv"
     };
     std::vector<uint32_t> spirv;
     for (auto& path : paths) {
@@ -371,15 +369,13 @@ bool VulkanRenderer::createGraphicsPipeline() {
     std::vector<std::string> vert_paths = {
         "fullscreen.vert.spv",
         "kernels/fullscreen.vert.spv",
-        "../kernels/fullscreen.vert.spv",
-        "C:/Projects/Van_Nueman/kernels/fullscreen.vert.spv"
+        "../kernels/fullscreen.vert.spv"
     };
     
     std::vector<std::string> frag_paths = {
         "display.frag.spv",
         "kernels/display.frag.spv",
-        "../kernels/display.frag.spv",
-        "C:/Projects/Van_Nueman/kernels/display.frag.spv"
+        "../kernels/display.frag.spv"
     };
     
     std::vector<uint32_t> vertSpirv, fragSpirv;

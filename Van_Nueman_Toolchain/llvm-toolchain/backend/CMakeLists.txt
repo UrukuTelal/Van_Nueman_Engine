@@ -9,12 +9,16 @@ if(VN_BUILD_BACKEND)
     VnTargetMachine.cpp
   )
 
+  if(NOT SPIRV_TRANSLATOR_DIR)
+    set(SPIRV_TRANSLATOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../spirv-translator")
+  endif()
+
   target_include_directories(vn-spirv
     PRIVATE
       ${LLVM_INCLUDE_DIRS}
       ${CLANG_INCLUDE_DIRS}
       ${CMAKE_CURRENT_SOURCE_DIR}/../include
-      "C:/Projects/Van_Nueman/spirv-translator/install/include"
+      "${SPIRV_TRANSLATOR_DIR}/install/include"
   )
 
   target_link_libraries(vn-spirv
@@ -22,7 +26,7 @@ if(VN_BUILD_BACKEND)
       LLVMCore
       LLVMIRWriter
       LLVMSupport
-      "C:/Projects/Van_Nueman/spirv-translator/install/lib/LLVMSPIRVLib.lib"
+      "${SPIRV_TRANSLATOR_DIR}/install/lib/LLVMSPIRVLib.lib"
   )
 
   message(STATUS "Van_Nueman SPIR-V backend configured")

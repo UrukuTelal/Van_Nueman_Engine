@@ -105,7 +105,7 @@ self.pillar_state = {
 ### New Options#
 
 ```bash
-cd C:/Projects/Van_Nueman/PillarAIColab/scripts/
+cd PillarAIColab/scripts/
 
 # Show Development Team status (16 pillars, coop+comp)
 python wht_cli.py --dev-team

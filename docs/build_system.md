@@ -183,7 +183,7 @@ spirv-translator/
 ### Building LLVM 17#
 
 ```bash
-cd C:/Projects/Van_Nueman/llvm-project-release-17.x
+cd C:/Projects/Van_Nueman_Engine/Van_Nueman_Toolchain/llvm-project-release-17.x
 
 # Configure
 cmake -B build -G "Visual Studio 17 2022" \
@@ -252,7 +252,7 @@ void compute_pillars(float* pillar_states, uint32_t num_entities) {
 
 ```bash
 # Compile all kernels
-cd C:/Projects/Van_Nueman/kernels
+cd C:/Projects/Van_Nueman_Engine/kernels
 for f in *.cu; do
     vncc -emit-spv "$f" -o "${f%.cu}.spv"
 done

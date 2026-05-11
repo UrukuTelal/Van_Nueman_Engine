@@ -274,7 +274,7 @@ def cli_send_message(self, agent_name: str, message: str, use_wht: bool = True):
 ### Usage#
 
 ```bash
-cd C:/Projects/Van_Nueman/PillarAIColab/scripts
+cd PillarAIColab/scripts
 
 # Basic delegation
 python task_delegator.py --task "Fix this C++ code" --model qwen2.5:7b
@@ -346,7 +346,7 @@ class WorkflowEngine:
 ### Available Commands#
 
 ```bash
-cd C:/Projects/Van_Nueman/PillarAIColab/scripts
+cd PillarAIColab/scripts
 
 # Enable intercept mode (auto-route)
 python wht_cli.py --intercept

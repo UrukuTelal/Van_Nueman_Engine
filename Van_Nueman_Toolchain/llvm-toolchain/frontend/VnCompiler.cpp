@@ -100,8 +100,14 @@ int main(int argc, const char** argv) {
     return 1;
   }
 
-  std::string clangPP = "C:/Projects/Van_Nueman/llvm-project-release-17.x/build-vs18/Release/bin/clang++.exe";
-  std::string spirvTool = "C:/Projects/Van_Nueman/spirv-translator/install/bin/llvm-spirv.exe";
+  const char* envClang = std::getenv("VN_CLANGPP");
+  const char* envSpirv = std::getenv("VN_SPIRV_TOOL");
+  const char* envDis   = std::getenv("VN_LLVM_DIS");
+  const char* envAsm   = std::getenv("VN_LLVM_AS");
+
+  std::string llvmBin = "C:/Projects/Van_Nueman_Engine/Van_Nueman_Toolchain/llvm-project-release-17.x/build-vs18/Release/bin";
+  std::string clangPP = envClang ? envClang : llvmBin + "/clang++.exe";
+  std::string spirvTool = envSpirv ? envSpirv : "C:/Projects/Van_Nueman_Engine/Van_Nueman_Toolchain/spirv-translator/install/bin/llvm-spirv.exe";
 
   if (emitLLVM) {
     // LLVM IR output
@@ -177,7 +183,7 @@ int main(int argc, const char** argv) {
     
     // Use llvm-dis to convert .bc to .ll
     std::vector<std::string> cmdDis;
-    cmdDis.push_back("C:/Projects/Van_Nueman/llvm-project-release-17.x/build-vs18/Release/bin/llvm-dis.exe");
+    cmdDis.push_back(envDis ? envDis : llvmBin + "/llvm-dis.exe");
     cmdDis.push_back(llvmOut);
     cmdDis.push_back("-o");
     cmdDis.push_back(llvmLL);
@@ -194,7 +200,7 @@ int main(int argc, const char** argv) {
     
     // Convert back to .bc
     std::vector<std::string> cmdAsm;
-    cmdAsm.push_back("C:/Projects/Van_Nueman/llvm-project-release-17.x/build-vs18/Release/bin/llvm-as.exe");
+    cmdAsm.push_back(envAsm ? envAsm : llvmBin + "/llvm-as.exe");
     cmdAsm.push_back(llvmLL);
     cmdAsm.push_back("-o");
     cmdAsm.push_back(llvmOut);
