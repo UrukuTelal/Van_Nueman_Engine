@@ -353,7 +353,7 @@ if(glfw3_FOUND)
 endif()
 
 # Custom LLVM -> SPIR-V pipeline for kernel compilation
-set(VNCC_EXECUTABLE "${CMAKE_SOURCE_DIR}/../Van_Nueman_Toolchain/llvm-toolchain/build/frontend/Release/vncc.exe")
+set(VNCC_EXECUTABLE "${CMAKE_SOURCE_DIR}/Van_Nueman_Toolchain/llvm-toolchain/build/frontend/Release/vncc.exe")
 if(EXISTS "${VNCC_EXECUTABLE}")
     # Find all kernel source files
     file(GLOB KERNEL_SOURCES "${CMAKE_SOURCE_DIR}/kernels/*.cpp")
