@@ -11,9 +11,9 @@ uint32_t bob_agent_login(const char* player_name, const float pillars[NUM_PILLAR
     agent.energy = 100.0f;
     agent.logged_in = true;
     
-    // Save to Van_Nueman/Van_Nueman_PillarAI/Pillar_10_Memory/uid_matrices/
+    // Save locally within Engine data dir (separate from PillarAI repo)
     char path[256];
-    snprintf(path, sizeof(path), "Van_Nueman/Van_Nueman_PillarAI/Pillar_10_Memory/uid_matrices/Bob_%u.json", agent.uid);
+    snprintf(path, sizeof(path), "data/uid_matrices/Bob_%u.json", agent.uid);
     
     FILE* f = fopen(path, "w");
     if (f) {
@@ -27,7 +27,7 @@ uint32_t bob_agent_login(const char* player_name, const float pillars[NUM_PILLAR
 
 void bob_agent_logout(uint32_t uid) {
     char path[256];
-    snprintf(path, sizeof(path), "Van_Nueman/Van_Nueman_PillarAI/Pillar_10_Memory/uid_matrices/Bob_%u.json", uid);
+    snprintf(path, sizeof(path), "data/uid_matrices/Bob_%u.json", uid);
     
     FILE* f = fopen(path, "r");
     if (f) {
