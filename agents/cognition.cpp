@@ -79,7 +79,7 @@ void AgentCognition::update(float delta_time) {
     store_memory(current_state_);
 }
 
-void AgentCognition::apply_pillar_constraints() {
+void AgentCognition::apply_pillar_constraints() { 
     // Harm constraint: if Harm > 0.7, reduce other pillars
     if (current_state_.pillars[PILLAR_HARM] > 0.7f) {
         for (int i = 0; i < NUM_PILLARS; i++) {

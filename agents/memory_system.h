@@ -13,8 +13,8 @@
 #include <chrono>
 #include "cognition.h"
 
-constexpr int MEMORY_DIMENSION = 384;
-constexpr int MAX_MEMORIES_PER_AGENT = 10000;
+constexpr int MEMORY_DIMENSION = 512;
+constexpr int MAX_MEMORIES_PER_AGENT = 100000;
 constexpr float DEFAULT_CONSOLIDATION_THRESHOLD = 0.7f;
 
 enum class MemoryType {
