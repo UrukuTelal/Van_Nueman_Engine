@@ -7,12 +7,16 @@
 // Pillar → Skelly coupling: How Pillar State Vector drives Skelly physics
 // From FULL_ARCHITECTURE.md: "Pillar Vector → drives → Skelly System → produces → Physics"
 
+// Convert fp20_t raw int64 to float for CUDA kernels
+#define FROM_FP20(x) ((float)(x).raw() / 1048576.0f)
+#define TO_FP20(f)   ((int64_t)((f) * 1048576.0f))
+
 // Coupling constants (scaled integer compatible)
 #define COUPLING_FORCE_TO_MUSCLE_ACTIVATION  0.001f
 #define COUPLING_WILLPOWER_TO_FLEXIBILITY    0.0005f
 #define COUPLING_RESISTANCE_TO_BREAK_THRESH  0.002f
 #define COUPLING_INTEGRITY_TO_REPAIR_RATE    0.001f
-#define COUPLING_HARM_TO_FRACTURE_PROB       0.005f
+#define COUPLING_HARM_TO_FRACTURE_PROB       0.02f
 
 // Pillar-driven muscle activation
 __global__ void pillar_coupling_muscles_kernel(Entity* entities, uint32_t entity_count,
@@ -31,7 +35,7 @@ __global__ void pillar_coupling_muscles_kernel(Entity* entities, uint32_t entity
     for (uint32_t m = inst.muscle_start; m < inst.muscle_start + inst.muscle_count; m++) {
         MuscleGroup& mg = muscles[m];
         // Force pillar drives muscle activation
-        mg.activation = ent.pillars[PILLAR_FORCE];
+        mg.activation = FROM_FP20(ent.pillars[PILLAR_FORCE]);
     }
 }
 
@@ -52,8 +56,8 @@ __global__ void pillar_coupling_bones_kernel(Entity* entities, uint32_t entity_c
     // Resistance increases break threshold (durability)
     for (uint32_t s = inst.segment_start; s < inst.segment_start + inst.segment_count; s++) {
         BoneSegment& seg = segments[s];
-        seg.flexibility = ent.pillars[PILLAR_WILLPOWER];
-        seg.break_threshold = ent.pillars[PILLAR_RESISTANCE] * 200.0f;
+        seg.flexibility = FROM_FP20(ent.pillars[PILLAR_WILLPOWER]);
+        seg.break_threshold = FROM_FP20(ent.pillars[PILLAR_RESISTANCE]) * 200.0f;
     }
 }
 
@@ -75,9 +79,9 @@ __global__ void pillar_coupling_organs_kernel(Entity* entities, uint32_t entity_
     for (uint32_t o = inst.organ_start; o < inst.organ_start + inst.organ_count; o++) {
         Organ& organ = organs[o];
         if (organ.type == 2) {  // power_plant
-            organ.active_state = ent.pillars[PILLAR_FORCE];
+            organ.active_state = FROM_FP20(ent.pillars[PILLAR_FORCE]);
         } else if (organ.type == 3) {  // factory
-            organ.active_state = ent.pillars[PILLAR_WARMTH];
+            organ.active_state = FROM_FP20(ent.pillars[PILLAR_WARMTH]);
         }
     }
 }
@@ -96,14 +100,14 @@ __global__ void pillar_coupling_harm_kernel(Entity* entities, uint32_t entity_co
     Entity ent = entities[inst.entity_id - 1];
 
     // Get Harm pillar value
-    float harm = ent.pillars[PILLAR_HARM];
+    float harm = FROM_FP20(ent.pillars[PILLAR_HARM]);
     
     if (harm > 0.7f) {
         // High Harm can cause fractures
         for (uint32_t s = inst.segment_start; s < inst.segment_start + inst.segment_count; s++) {
             BoneSegment& seg = segments[s];
             float fracture_prob = harm * COUPLING_HARM_TO_FRACTURE_PROB;
-            if (fracture_prob > 0.5f) {
+            if (fracture_prob > 0.01f) {
                 seg.is_fractured = 1;
                 // Also fracture the end node
                 // bones[seg.end_node].is_fractured = 1; // Would need bone array
@@ -126,7 +130,7 @@ __global__ void pillar_coupling_repair_kernel(Entity* entities, uint32_t entity_
     Entity ent = entities[inst.entity_id - 1];
 
     // Get Integrity pillar value
-    float integrity = ent.pillars[PILLAR_INTEGRITY];
+    float integrity = FROM_FP20(ent.pillars[PILLAR_INTEGRITY]);
     
     if (integrity > 0.6f) {
         // High Integrity repairs fractures

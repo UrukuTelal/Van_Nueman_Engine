@@ -227,13 +227,16 @@ bool VulkanRenderer::createComputePipeline() {
     VK_CHECK(vkCreateShaderModule(device, &smci, nullptr, &shaderModule));
     std::cerr << "Shader module created" << std::endl;
 
-    VkDescriptorSetLayoutBinding bindings[3] = {};
+    VkDescriptorSetLayoutBinding bindings[6] = {};
     bindings[0] = {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
     bindings[1] = {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
     bindings[2] = {2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT};
+    bindings[3] = {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
+    bindings[4] = {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
+    bindings[5] = {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
 
     VkDescriptorSetLayoutCreateInfo dslci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    dslci.bindingCount = 3; dslci.pBindings = bindings;
+    dslci.bindingCount = 6; dslci.pBindings = bindings;
     VK_CHECK(vkCreateDescriptorSetLayout(device, &dslci, nullptr, &descriptorSetLayout));
     std::cerr << "Compute descriptor set layout created" << std::endl;
 
@@ -305,7 +308,7 @@ bool VulkanRenderer::createOutputImage() {
 bool VulkanRenderer::createDescriptorPoolAndSets() {
     VkDescriptorPoolSize ps[4] = {
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2},
         {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}
     };
@@ -672,6 +675,10 @@ bool VulkanRenderer::uploadMuscles(MuscleGPU* muscles, uint32_t count) {
 bool VulkanRenderer::uploadOrgans(OrganGPU* organs, uint32_t count) {
     std::cerr << "uploadOrgans: creating buffer..." << std::endl;
     organCount = count;
+    if (organBuffer) {
+        vkDestroyBuffer(device, organBuffer, nullptr);
+        vkFreeMemory(device, organBufferMemory, nullptr);
+    }
     VkBufferCreateInfo bci = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
     bci.size = sizeof(OrganGPU) * count; bci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     VK_CHECK(vkCreateBuffer(device, &bci, nullptr, &organBuffer));
@@ -707,6 +714,69 @@ bool VulkanRenderer::uploadOrgans(OrganGPU* organs, uint32_t count) {
     vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
 
     std::cerr << "uploadOrgans: done (" << count << " organs)" << std::endl;
+    return true;
+}
+
+bool VulkanRenderer::uploadAgents(const float* positions, const float* colors, uint32_t count) {
+    uint32_t stride = 8 * sizeof(float);
+    uint32_t total_size = sizeof(uint32_t) + count * stride;
+    uint32_t needed_capacity = count + 1;
+
+    if (!agentBuffer || needed_capacity > agentBufferCapacity) {
+        if (agentBuffer) {
+            vkDestroyBuffer(device, agentBuffer, nullptr);
+            vkFreeMemory(device, agentBufferMemory, nullptr);
+        }
+        agentBufferCapacity = needed_capacity + 64;
+
+        VkBufferCreateInfo bci = {};
+        bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bci.size = sizeof(uint32_t) + agentBufferCapacity * stride;
+        bci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        VK_CHECK(vkCreateBuffer(device, &bci, nullptr, &agentBuffer));
+
+        VkMemoryRequirements mr;
+        vkGetBufferMemoryRequirements(device, agentBuffer, &mr);
+        VkPhysicalDeviceMemoryProperties memProps;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
+        uint32_t memTypeIndex = 0;
+        for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
+            if (mr.memoryTypeBits & (1 << i)) {
+                if (memProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
+                    memTypeIndex = i; break;
+                }
+            }
+        }
+        VkMemoryAllocateInfo mai = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+        mai.allocationSize = mr.size; mai.memoryTypeIndex = memTypeIndex;
+        VK_CHECK(vkAllocateMemory(device, &mai, nullptr, &agentBufferMemory));
+        vkBindBufferMemory(device, agentBuffer, agentBufferMemory, 0);
+
+        VkDescriptorBufferInfo agentInfo = {agentBuffer, 0, bci.size};
+        VkWriteDescriptorSet wds = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        wds.dstSet = descriptorSet; wds.dstBinding = 3;
+        wds.descriptorCount = 1; wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        wds.pBufferInfo = &agentInfo;
+        vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+    }
+
+    void* data;
+    VK_CHECK(vkMapMemory(device, agentBufferMemory, 0, total_size, 0, &data));
+    uint32_t* header = static_cast<uint32_t*>(data);
+    header[0] = count;
+    float* agents = reinterpret_cast<float*>(header + 1);
+    for (uint32_t i = 0; i < count; i++) {
+        agents[i * 8 + 0] = positions[i * 3 + 0];
+        agents[i * 8 + 1] = positions[i * 3 + 1];
+        agents[i * 8 + 2] = positions[i * 3 + 2];
+        agents[i * 8 + 3] = 0.3f;
+        agents[i * 8 + 4] = colors[i * 3 + 0];
+        agents[i * 8 + 5] = colors[i * 3 + 1];
+        agents[i * 8 + 6] = colors[i * 3 + 2];
+        agents[i * 8 + 7] = 1.0f;
+    }
+    vkUnmapMemory(device, agentBufferMemory);
     return true;
 }
 
@@ -836,6 +906,8 @@ void VulkanRenderer::cleanup() {
     if (graphicsPipeline) vkDestroyPipeline(device, graphicsPipeline, nullptr);
     if (pipelineLayout) vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     if (renderPass) vkDestroyRenderPass(device, renderPass, nullptr);
+    if (agentBuffer) vkDestroyBuffer(device, agentBuffer, nullptr);
+    if (agentBufferMemory) vkFreeMemory(device, agentBufferMemory, nullptr);
     if (svoBuffer) vkDestroyBuffer(device, svoBuffer, nullptr);
     if (svoBufferMemory) vkFreeMemory(device, svoBufferMemory, nullptr);
     if (cameraBuffer) vkDestroyBuffer(device, cameraBuffer, nullptr);
@@ -861,5 +933,7 @@ void VulkanRenderer::cleanup() {
 void VulkanRenderer::cleanupSwapchain() {
     for (uint32_t i = 0; i < imageCount; i++)
         if (swapchainImageViews[i]) vkDestroyImageView(device, swapchainImageViews[i], nullptr);
+    delete[] swapchainImages; swapchainImages = nullptr;
+    delete[] swapchainImageViews; swapchainImageViews = nullptr;
     if (swapchain) vkDestroySwapchainKHR(device, swapchain, nullptr);
 }

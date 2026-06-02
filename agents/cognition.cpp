@@ -1,21 +1,23 @@
 #include "cognition.h"
+#include "../scale/SemanticProjection.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <sstream>
 
 AgentCognition::AgentCognition(int agent_id)
     : agent_id_(agent_id), tick_count_(0), rng_(std::random_device{}()) {
-    current_state_.pillars.fill(0.5f);
+    current_state_.pillars.fill(vn::fp20_t(0.5f));
     current_state_.distortion_level = 0.0f;
     current_state_.tick_count = 0;
 
-    current_state_.pillars[PILLAR_AWARENESS] = 0.7f;
-    current_state_.pillars[PILLAR_WILLPOWER] = 0.6f;
-    current_state_.pillars[PILLAR_FORCE] = 0.5f;
-    current_state_.pillars[PILLAR_HARM] = 0.1f;
-    current_state_.pillars[PILLAR_DISTORTION] = 0.05f;
+    current_state_.pillars[PILLAR_AWARENESS] = vn::fp20_t(0.7f);
+    current_state_.pillars[PILLAR_WILLPOWER] = vn::fp20_t(0.6f);
+    current_state_.pillars[PILLAR_FORCE] = vn::fp20_t(0.5f);
+    current_state_.pillars[PILLAR_HARM] = vn::fp20_t(0.1f);
+    current_state_.pillars[PILLAR_DISTORTION] = vn::fp20_t(0.05f);
 
-    dream_state_.shadow_patterns.fill(0.0f);
+    dream_state_.shadow_patterns.fill(vn::fp20_t(0.0f));
     dream_state_.lucid_level = 0.0f;
     dream_state_.rem_cycles = 0;
     dream_state_.is_dreaming = false;
@@ -24,8 +26,10 @@ AgentCognition::AgentCognition(int agent_id)
     dream_state_.subconscious_drift_rate = 0.001f;
 
     for (int i = 0; i < 4; i++) {
-        dream_state_.shadow_patterns[i] = 0.3f + (static_cast<float>(rng_()) / rng_.max()) * 0.2f;
+        dream_state_.shadow_patterns[i] = vn::fp20_t(0.3f + (static_cast<float>(rng_()) / rng_.max()) * 0.2f);
     }
+    
+    cord_field_.init();
 }
 
 AgentCognition::~AgentCognition() = default;
@@ -33,35 +37,60 @@ AgentCognition::~AgentCognition() = default;
 void AgentCognition::perceive_voxels(const float* voxel_data, uint32_t voxel_count) {
     if (voxel_count == 0) return;
     
-    // Update Awareness based on voxel data availability
     float data_density = std::min(1.0f, voxel_count / 100.0f);
-    current_state_.pillars[0] = std::clamp(
-        current_state_.pillars[0] * 0.8f + data_density * 0.2f, 0.0f, 1.0f);
+    float current_val = current_state_.pillars[0].to_float();
+    float theta = std::acos(2.0f * current_val - 1.0f);
+    float delta_theta = (data_density - 0.5f) * 0.1f;
+    float new_theta = theta + delta_theta;
+    if (new_theta < 0.0f) new_theta = 0.0f;
+    if (new_theta > 3.14159265f) new_theta = 3.14159265f;
+    current_state_.pillars[0] = vn::fp20_t((std::cos(new_theta) + 1.0f) * 0.5f);
 }
 
 void AgentCognition::perceive_agents(const AgentInfo* nearby_agents, uint32_t agent_count) {
     if (agent_count == 0) {
-        // No nearby agents - reduce Relation
-        current_state_.pillars[7] = std::max(0.1f, current_state_.pillars[7] - 0.05f);
+        // No nearby agents - reduce social memory (Relation projection)
+        float rel = current_state_.pillars[PILLAR_RELATION].to_float() - 0.05f;
+        current_state_.pillars[PILLAR_RELATION] = vn::fp20_t(std::max(0.1f, rel));
         return;
     }
     
-    // Update Relation and Cohesion based on nearby agents
+    // Update social memory and cohesion based on nearby agents
     float relation_boost = std::min(0.3f, agent_count * 0.05f);
-    current_state_.pillars[7] = std::clamp(
-        current_state_.pillars[7] + relation_boost, 0.0f, 1.0f);
-    current_state_.pillars[6] = std::clamp(
-        current_state_.pillars[6] + relation_boost * 0.5f, 0.0f, 1.0f);
+
+    float rel_val = current_state_.pillars[PILLAR_RELATION].to_float();
+    float rel_theta = std::acos(2.0f * rel_val - 1.0f);
+    float rel_delta = relation_boost * 0.1f;
+    float new_rel_theta = rel_theta + rel_delta;
+    if (new_rel_theta < 0.0f) new_rel_theta = 0.0f;
+    if (new_rel_theta > 3.14159265f) new_rel_theta = 3.14159265f;
+    current_state_.pillars[PILLAR_RELATION] = vn::fp20_t((std::cos(new_rel_theta) + 1.0f) * 0.5f);
+
+    float coh_val = current_state_.pillars[PILLAR_COHESION].to_float();
+    float coh_theta = std::acos(2.0f * coh_val - 1.0f);
+    float coh_delta = relation_boost * 0.05f;
+    float new_coh_theta = coh_theta + coh_delta;
+    if (new_coh_theta < 0.0f) new_coh_theta = 0.0f;
+    if (new_coh_theta > 3.14159265f) new_coh_theta = 3.14159265f;
+    current_state_.pillars[PILLAR_COHESION] = vn::fp20_t((std::cos(new_coh_theta) + 1.0f) * 0.5f);
 }
 
 void AgentCognition::perceive_environment(float temperature, float hazard_level, float resource_density) {
-    // High hazard increases Harm
-    current_state_.pillars[12] = std::clamp(
-        current_state_.pillars[12] + hazard_level * 0.1f, 0.0f, 1.0f);
+    (void)temperature;
+    float harm_val = current_state_.pillars[PILLAR_HARM].to_float();
+    float will_val = current_state_.pillars[PILLAR_WILLPOWER].to_float();
+    float dep_val = current_state_.pillars[PILLAR_DEPTH].to_float();
+    float theta = std::acos(2.0f * harm_val - 1.0f);
+    float resistance = (will_val * dep_val > 1e-8f) ? (will_val * dep_val) : 1e-8f;
+    float delta_theta = (hazard_level * 0.1f * harm_val) / resistance;
+    if (delta_theta > 3.14159265f) delta_theta = 3.14159265f;
+    float new_theta = theta + delta_theta;
+    if (new_theta < 0.0f) new_theta = 0.0f;
+    if (new_theta > 3.14159265f) new_theta = 3.14159265f;
+    current_state_.pillars[PILLAR_HARM] = vn::fp20_t((std::cos(new_theta) + 1.0f) * 0.5f);
     
-    // Resources affect Attraction
-    current_state_.pillars[11] = std::clamp(
-        resource_density, 0.0f, 1.0f);
+    // Resources affect curiosity (Attraction projection)
+    current_state_.pillars[PILLAR_ATTRACTION] = vn::fp20_t(std::clamp(resource_density, 0.0f, 1.0f));
 }
 
 void AgentCognition::update(float delta_time) {
@@ -72,6 +101,10 @@ void AgentCognition::update(float delta_time) {
 
     current_state_.distortion_level = detect_distortion();
 
+    perceive_cords();
+
+    cord_field_.tick_all(delta_time);
+
     dream_cycle();
 
     apply_subconscious_drift(delta_time);
@@ -80,31 +113,51 @@ void AgentCognition::update(float delta_time) {
 }
 
 void AgentCognition::apply_pillar_constraints() { 
-    // Harm constraint: if Harm > 0.7, reduce other pillars
-    if (current_state_.pillars[PILLAR_HARM] > 0.7f) {
+    const float PI = 3.14159265f;
+    
+    // Harm constraint: if Harm > 0.7, apply gentle Bloch rotation to other
+    // pillars (rotating them toward constraint pole). This is NOT a scalar
+    // reduction — it is a geometric rotation.
+    if (current_state_.pillars[PILLAR_HARM].to_float() > 0.7f) {
+        float harm_theta = std::acos(2.0f * current_state_.pillars[PILLAR_HARM].to_float() - 1.0f);
+        float gentle_rotation = -0.05f;  // small rotation toward south pole
         for (int i = 0; i < NUM_PILLARS; i++) {
             if (i != PILLAR_HARM) {
-                current_state_.pillars[i] *= 0.95f;
+                float theta = std::acos(2.0f * current_state_.pillars[i].to_float() - 1.0f);
+                float new_theta = theta + gentle_rotation;
+                if (new_theta < 0.0f) new_theta = 0.0f;
+                if (new_theta > PI) new_theta = PI;
+                current_state_.pillars[i] = vn::fp20_t((std::cos(new_theta) + 1.0f) * 0.5f);
             }
         }
     }
     
-    // Distortion reduces Awareness effectiveness
-    float distortion_factor = 1.0f - current_state_.pillars[PILLAR_DISTORTION];
-    current_state_.pillars[PILLAR_AWARENESS] *= distortion_factor;
+    // Distortion does NOT reduce Awareness. It twists the phi (phase)
+    // angle of the Awareness Bloch sphere, making perception unreliable
+    // without diminishing its raw magnitude.
+    float distortion = current_state_.pillars[PILLAR_DISTORTION].to_float();
+    if (distortion > 0.01f) {
+        float theta = std::acos(2.0f * current_state_.pillars[PILLAR_AWARENESS].to_float() - 1.0f);
+        float phi_twist = distortion * PI;
+        float z_projection = std::cos(theta + phi_twist);
+        current_state_.pillars[PILLAR_AWARENESS] = vn::fp20_t((z_projection + 1.0f) * 0.5f);
+    }
 }
 
 float AgentCognition::detect_distortion() const {
-    // Simple distortion detection
     float distortion = 0.0f;
     
-    // Check for inconsistent pillar values
-    if (current_state_.pillars[PILLAR_FORCE] > 0.8f && current_state_.pillars[PILLAR_RESISTANCE] < 0.2f) {
-        distortion += 0.3f;  // High Force but low Resistance
+    // Project to cognitive layer and check for incoherence signals
+    CognitiveProjection cp = CognitiveProjection::project(to_pillar_state(current_state_.pillars.data()));
+    
+    // High agency without identity coherence = unstable drive
+    if (cp.agency > 0.7f && cp.identity_coherence < 0.3f) {
+        distortion += 0.3f;
     }
     
-    if (current_state_.pillars[PILLAR_HARM] > 0.5f && current_state_.pillars[PILLAR_INTEGRITY] > 0.8f) {
-        distortion += 0.2f;  // High Harm but high Integrity (inconsistent)
+    // High cognitive load with high identity coherence = suppressed dissonance
+    if (cp.cognitive_load > 0.5f && cp.identity_coherence > 0.8f) {
+        distortion += 0.2f;
     }
     
     return std::clamp(distortion, 0.0f, 1.0f);
@@ -115,11 +168,11 @@ bool AgentCognition::is_distorted() const {
 }
 
 AgentAction AgentCognition::decide() {
-    // Simple rule-based decision making
+    CognitiveProjection cp = CognitiveProjection::project(to_pillar_state(current_state_.pillars.data()));
     
-    // High Harm - flee or defend
-    if (current_state_.pillars[12] > 0.6f) {
-        return current_state_.pillars[4] > 0.5f ? AgentAction::DEFEND : AgentAction::FLEE;
+    // High cognitive load (Harm projection) - flee or defend
+    if (cp.cognitive_load > 0.6f) {
+        return cp.identity_coherence > 0.5f ? AgentAction::DEFEND : AgentAction::FLEE;
     }
     
     // High distortion - idle (paralysis)
@@ -127,18 +180,23 @@ AgentAction AgentCognition::decide() {
         return AgentAction::IDLE;
     }
     
-    // High Willpower + Force - build or gather
-    if (current_state_.pillars[1] > 0.7f && current_state_.pillars[2] > 0.6f) {
+    // High agency (Willpower + Force projection) - build
+    if (cp.agency > 0.65f) {
         return AgentAction::BUILD;
     }
     
-    // High Attraction + low resources nearby
-    if (current_state_.pillars[11] > 0.6f) {
+    // High curiosity (Attraction projection) - gather
+    if (cp.curiosity > 0.6f) {
         return AgentAction::GATHER;
     }
     
-    // High Awareness + low Relation - explore
-    if (current_state_.pillars[0] > 0.6f && current_state_.pillars[7] < 0.4f) {
+    // Detectable cords → communicate to reinforce
+    if (get_detectable_cord_count() > 0 && cp.social_memory > 0.4f) {
+        return AgentAction::COMMUNICATE;
+    }
+    
+    // Low focus_inward (high outward awareness) + low social memory - explore
+    if (cp.focus_inward < 0.4f && cp.social_memory < 0.4f) {
         return AgentAction::EXPLORE;
     }
     
@@ -162,9 +220,15 @@ void AgentCognition::query_llm(const std::string& task, LLMBridge& bridge) {
 }
 
 void AgentCognition::update_pillar_from_llm(const PillarVector& new_values) {
-    // Blend current state with LLM suggestion
+    // Blend current state with LLM suggestion — θ-space rotation delta (NOT Cartesian)
     for (int i = 0; i < NUM_PILLARS; i++) {
-        current_state_.pillars[i] = current_state_.pillars[i] * 0.7f + new_values[i] * 0.3f;
+        float old_theta = pillar_value_to_theta(current_state_.pillars[i]).to_float();
+        float suggestion_theta = pillar_value_to_theta(new_values[i]).to_float();
+        float delta_theta = (suggestion_theta - old_theta) * 0.3f;
+        float result_theta = old_theta + delta_theta;
+        if (result_theta < 0.0f) result_theta = 0.0f;
+        if (result_theta > 3.14159265f) result_theta = 3.14159265f;
+        current_state_.pillars[i] = theta_to_pillar_value(vn::fp20_t(result_theta));
     }
 }
 
@@ -176,6 +240,9 @@ void AgentCognition::store_memory(const CognitiveState& state) {
 }
 
 CognitiveState AgentCognition::recall_memory(uint32_t ticks_ago) const {
+    if (memory_.empty()) {
+        return CognitiveState{};
+    }
     if (ticks_ago >= memory_.size()) {
         return memory_.front();
     }
@@ -188,12 +255,111 @@ void AgentCognition::prune_memory(uint32_t max_entries) {
     }
 }
 
-float AgentCognition::calculate_harm_delta() const {
-    if (memory_.empty()) return 0.0f;
+void AgentCognition::perceive_cords() {
+    Cord nearby[MAX_CORDS_PER_ENTITY];
+    int count = cord_field_.get_for_entity(agent_id_, nearby, MAX_CORDS_PER_ENTITY);
 
+    float awareness = current_state_.pillars[PILLAR_AWARENESS].to_float();
+    int detectable = 0;
+
+    for (int i = 0; i < count; i++) {
+        if (nearby[i].is_detectable_by(awareness)) {
+            detectable++;
+            // Each detectable cord gently rotates Relation upward
+            float rel_theta = pillar_value_to_theta(current_state_.pillars[PILLAR_RELATION]).to_float();
+            float delta = nearby[i].strength * 0.01f;
+            current_state_.pillars[PILLAR_RELATION] = apply_bloch_rotation(
+                current_state_.pillars[PILLAR_RELATION], vn::fp20_t(delta));
+
+            // Attraction also gets a small rotation
+            float attr_theta = pillar_value_to_theta(current_state_.pillars[PILLAR_ATTRACTION]).to_float();
+            float attr_delta = nearby[i].strength * 0.005f;
+            current_state_.pillars[PILLAR_ATTRACTION] = apply_bloch_rotation(
+                current_state_.pillars[PILLAR_ATTRACTION], vn::fp20_t(attr_delta));
+        }
+    }
+}
+
+void AgentCognition::reinforce_cords_with(uint32_t other_entity_id) {
+    Cord* cord = cord_field_.find(agent_id_, other_entity_id);
+    if (cord) {
+        cord->reinforce();
+    } else {
+        cord_field_.create(agent_id_, other_entity_id);
+    }
+}
+
+int AgentCognition::get_detectable_cord_count() const {
+    Cord nearby[MAX_CORDS_PER_ENTITY];
+    int count = cord_field_.get_for_entity(agent_id_, nearby, MAX_CORDS_PER_ENTITY);
+    float awareness = current_state_.pillars[PILLAR_AWARENESS].to_float();
+    int detectable = 0;
+    for (int i = 0; i < count; i++) {
+        if (nearby[i].is_detectable_by(awareness)) detectable++;
+    }
+    return detectable;
+}
+
+float AgentCognition::calculate_bloch_angular_shift() const {
+    // Compute the angular shift of the Harm pillar using Bloch rotation:
+    // Δθ = (incoming_force * operator_magnitude) / (willpower * depth)
+    // where incoming_force is the change in Harm, and operator_magnitude
+    // is the current Harm value itself.
+    if (memory_.empty()) return 0.0f;
+    
     const auto& prev = memory_.back();
-    float delta = current_state_.pillars[12] - prev.pillars[12];
-    return std::max(0.0f, delta - current_state_.pillars[4] - current_state_.pillars[5]);
+    float incoming_force = std::abs(current_state_.pillars[PILLAR_HARM].to_float() - prev.pillars[PILLAR_HARM].to_float());
+    float operator_mag = current_state_.pillars[PILLAR_HARM].to_float();
+    float willpower = current_state_.pillars[PILLAR_WILLPOWER].to_float();
+    float depth = current_state_.pillars[PILLAR_DEPTH].to_float();
+    
+    float resistance = willpower * depth;
+    if (resistance < 1e-8f) resistance = 1e-8f;
+    float raw_shift = (incoming_force * operator_mag) / resistance;
+    if (raw_shift > 3.14159265f) raw_shift = 3.14159265f;
+    if (raw_shift < -3.14159265f) raw_shift = -3.14159265f;
+    return raw_shift;
+}
+
+void AgentCognition::apply_bloch_harm_rotation(float delta_theta, float& depth, float& constraint) {
+    // Apply Harm rotation to Integrity (default target) with Depth buffer
+    float raw_shift = delta_theta;
+    float shift_abs = (raw_shift < 0.0f) ? -raw_shift : raw_shift;
+    float applied = raw_shift;
+    float willpower = current_state_.pillars[PILLAR_WILLPOWER].to_float();
+    
+    if (shift_abs > willpower) {
+        applied = (raw_shift < 0.0f) ? -willpower : willpower;
+        float excess = shift_abs - willpower;
+        float depth_cost = excess * 0.5f;
+        
+        if (depth - depth_cost <= 0.0f) {
+            float remaining = depth_cost - depth;
+            depth = 0.0f;
+            constraint += remaining;
+            if (constraint > 1.0f) constraint = 1.0f;
+        } else {
+            depth -= depth_cost;
+        }
+    }
+    
+    // Apply Bloch rotation to Integrity
+    float theta = std::acos(2.0f * current_state_.pillars[PILLAR_INTEGRITY].to_float() - 1.0f);
+    float new_theta = theta + applied;
+    if (new_theta < 0.0f) new_theta = 0.0f;
+    if (new_theta > 3.14159265f) new_theta = 3.14159265f;
+    current_state_.pillars[PILLAR_INTEGRITY] = vn::fp20_t((std::cos(new_theta) + 1.0f) * 0.5f);
+}
+
+void AgentCognition::apply_bloch_distortion_torsion() {
+    // Apply Distortion torsion to Awareness: twist phi, don't dampen value
+    float distortion = current_state_.pillars[PILLAR_DISTORTION].to_float();
+    if (distortion <= 0.01f) return;
+    
+    float theta = std::acos(2.0f * current_state_.pillars[PILLAR_AWARENESS].to_float() - 1.0f);
+    float phi_twist = distortion * 3.14159265f;
+    float z_projection = std::cos(theta + phi_twist);
+    current_state_.pillars[PILLAR_AWARENESS] = vn::fp20_t((z_projection + 1.0f) * 0.5f);
 }
 
 void AgentCognition::enter_dream(DreamLevel level) {
@@ -230,9 +396,9 @@ void AgentCognition::process_shadow() {
     float influence = dream_state_.lucid_level * 0.1f;
 
     for (int i = 0; i < NUM_PILLARS; i++) {
-        float shadow_delta = (current_state_.pillars[i] - dream_state_.shadow_patterns[i]) * influence;
-        dream_state_.shadow_patterns[i] += shadow_delta * 0.05f;
-        dream_state_.shadow_patterns[i] = std::clamp(dream_state_.shadow_patterns[i], 0.0f, 1.0f);
+        float shadow_delta = (current_state_.pillars[i].to_float() - dream_state_.shadow_patterns[i].to_float()) * influence;
+        dream_state_.shadow_patterns[i] = vn::fp20_t(dream_state_.shadow_patterns[i].to_float() + shadow_delta * 0.05f);
+        dream_state_.shadow_patterns[i] = vn::fp20_t(std::clamp(dream_state_.shadow_patterns[i].to_float(), 0.0f, 1.0f));
     }
 
     if (dream_state_.rem_cycles < 10) {
@@ -247,8 +413,14 @@ void AgentCognition::wake_up() {
     if (!dream_state_.is_dreaming) return;
 
     for (int i = 0; i < NUM_PILLARS; i++) {
-        float integration = dream_state_.shadow_patterns[i] * (1.0f - dream_state_.lucid_level * 0.5f);
-        current_state_.pillars[i] = current_state_.pillars[i] * 0.7f + integration * 0.3f;
+        float integration = dream_state_.shadow_patterns[i].to_float() * (1.0f - dream_state_.lucid_level * 0.5f);
+        float current_theta = pillar_value_to_theta(current_state_.pillars[i]).to_float();
+        float integration_theta = pillar_value_to_theta(vn::fp20_t(integration)).to_float();
+        float delta_theta = (integration_theta - current_theta) * 0.3f;
+        float result_theta = current_theta + delta_theta;
+        if (result_theta < 0.0f) result_theta = 0.0f;
+        if (result_theta > 3.14159265f) result_theta = 3.14159265f;
+        current_state_.pillars[i] = theta_to_pillar_value(vn::fp20_t(result_theta));
     }
 
     if (!dream_state_.dream_content.empty()) {
@@ -297,14 +469,14 @@ void AgentCognition::apply_subconscious_drift(float delta_time) {
                 size_t start_idx = memory_.size() - 10;
                 float sum = 0.0f;
                 for (size_t j = start_idx; j < memory_.size(); j++) {
-                    sum += memory_[j].pillars[i];
+                    sum += memory_[j].pillars[i].to_float();
                 }
                 historical_avg = sum / 10.0f;
             }
 
-            float drift_direction = (historical_avg - current_state_.pillars[i]) * drift;
-            dream_state_.shadow_patterns[i] += drift_direction * 0.1f;
-            dream_state_.shadow_patterns[i] = std::clamp(dream_state_.shadow_patterns[i], 0.0f, 1.0f);
+            float drift_direction = (historical_avg - current_state_.pillars[i].to_float()) * drift;
+            dream_state_.shadow_patterns[i] = vn::fp20_t(dream_state_.shadow_patterns[i].to_float() + drift_direction * 0.1f);
+            dream_state_.shadow_patterns[i] = vn::fp20_t(std::clamp(dream_state_.shadow_patterns[i].to_float(), 0.0f, 1.0f));
         }
     }
 }
@@ -342,8 +514,11 @@ void AgentCognition::generate_dream_scenario(DreamEpisode& episode) {
 
     for (int i = 0; i < NUM_PILLARS; i++) {
         std::uniform_real_distribution<float> perturbation(-0.1f, 0.1f);
-        episode.simulated_pillars[i] = current_state_.pillars[i] + perturbation(rng_);
-        episode.simulated_pillars[i] = std::clamp(episode.simulated_pillars[i], 0.0f, 1.0f);
+        float theta = pillar_value_to_theta(current_state_.pillars[i]).to_float();
+        float perturbed_theta = theta + perturbation(rng_);
+        if (perturbed_theta < 0.0f) perturbed_theta = 0.0f;
+        if (perturbed_theta > 3.14159265f) perturbed_theta = 3.14159265f;
+        episode.simulated_pillars[i] = theta_to_pillar_value(vn::fp20_t(perturbed_theta));
     }
 }
 
@@ -363,4 +538,36 @@ void AgentCognition::process_dream_resolution(DreamEpisode& episode) {
     }
 
     episode.duration_ticks++;
+}
+
+std::string AgentCognition::export_state_json() const {
+    std::ostringstream json;
+    json << "{";
+    json << "\"agent_id\":" << agent_id_ << ",";
+    json << "\"tick\":" << tick_count_ << ",";
+    json << "\"distortion_level\":" << current_state_.distortion_level << ",";
+    json << "\"pillars\":{"
+         << "\"awareness\":" << current_state_.pillars[PILLAR_AWARENESS].to_float() << ","
+         << "\"willpower\":" << current_state_.pillars[PILLAR_WILLPOWER].to_float() << ","
+         << "\"force\":" << current_state_.pillars[PILLAR_FORCE].to_float() << ","
+         << "\"influence\":" << current_state_.pillars[PILLAR_INFLUENCE].to_float() << ","
+         << "\"resistance\":" << current_state_.pillars[PILLAR_RESISTANCE].to_float() << ","
+         << "\"integrity\":" << current_state_.pillars[PILLAR_INTEGRITY].to_float() << ","
+         << "\"cohesion\":" << current_state_.pillars[PILLAR_COHESION].to_float() << ","
+         << "\"relation\":" << current_state_.pillars[PILLAR_RELATION].to_float() << ","
+         << "\"presence\":" << current_state_.pillars[PILLAR_PRESENCE].to_float() << ","
+         << "\"warmth\":" << current_state_.pillars[PILLAR_WARMTH].to_float() << ","
+         << "\"memory\":" << current_state_.pillars[PILLAR_MEMORY].to_float() << ","
+         << "\"attraction\":" << current_state_.pillars[PILLAR_ATTRACTION].to_float() << ","
+         << "\"harm\":" << current_state_.pillars[PILLAR_HARM].to_float() << ","
+         << "\"distortion\":" << current_state_.pillars[PILLAR_DISTORTION].to_float() << ","
+         << "\"flux\":" << current_state_.pillars[PILLAR_FLUX].to_float() << ","
+         << "\"depth\":" << current_state_.pillars[PILLAR_DEPTH].to_float()
+         << "},";
+    json << "\"dreaming\":" << (dream_state_.is_dreaming ? "true" : "false") << ",";
+    json << "\"dream_level\":" << static_cast<int>(dream_state_.current_level) << ",";
+    json << "\"lucid_level\":" << dream_state_.lucid_level << ",";
+    json << "\"cord_count\":" << cord_field_.get_active_count();
+    json << "}";
+    return json.str();
 }

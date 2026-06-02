@@ -94,7 +94,9 @@ void AgentPerception::detect_nearby_agents(float x, float y, float z, float radi
     
     int id = 0;
     for (auto it = begin; it != end; ++it, id++) {
-        float ax = 0.0f, ay = 0.0f, az = 0.0f;
+        float ax = static_cast<float>(it->x);
+        float ay = static_cast<float>(it->y);
+        float az = static_cast<float>(it->z);
         
         float dist = distance_3d(x, y, z, ax, ay, az);
         if (dist <= radius) {
@@ -120,9 +122,8 @@ CreaturePerceptionResult AgentPerception::perceive_creature(const Creature* crea
     
     auto state = creature->get_state();
     
-    // TODO: get creature position from Creature class when available
-    // For now, creature position defaults to origin
-    float creature_x = 0.0f, creature_y = 0.0f, creature_z = 0.0f;
+    Vec3 creature_pos = creature->get_position();
+    float creature_x = creature_pos.x, creature_y = creature_pos.y, creature_z = creature_pos.z;
     result.distance = distance_3d(agent_x, agent_y, agent_z, creature_x, creature_y, creature_z);
     result.size = state.scale;
     result.health = state.overall_health;
@@ -223,9 +224,9 @@ void AgentPerception::world_to_chunk(float x, float y, float z,
     chunk_y = static_cast<int>(std::floor(y / CHUNK_SIZE));
     chunk_z = static_cast<int>(std::floor(z / CHUNK_SIZE));
     
-    voxel_x = static_cast<int>(x) - chunk_x * CHUNK_SIZE;
-    voxel_y = static_cast<int>(y) - chunk_y * CHUNK_SIZE;
-    voxel_z = static_cast<int>(z) - chunk_z * CHUNK_SIZE;
+    voxel_x = static_cast<int>(std::floor(x)) - chunk_x * CHUNK_SIZE;
+    voxel_y = static_cast<int>(std::floor(y)) - chunk_y * CHUNK_SIZE;
+    voxel_z = static_cast<int>(std::floor(z)) - chunk_z * CHUNK_SIZE;
     
     if (voxel_x < 0) { chunk_x--; voxel_x += CHUNK_SIZE; }
     if (voxel_y < 0) { chunk_y--; voxel_y += CHUNK_SIZE; }

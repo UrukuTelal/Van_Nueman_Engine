@@ -30,9 +30,10 @@ float3 float3_normalize(float3 v) { float l = float3_length(v); return l > 0 ? f
 
 // Skelly structures with fractal attributes
 struct BoneNode {
+    uint32_t id;
     float3 local_pos;
     float3 global_pos;
-    uint32_t parent_idx;
+    int32_t parent_idx;
     uint32_t is_fractured;
     float constraint_pitch_min, constraint_pitch_max;
     float constraint_yaw_min, constraint_yaw_max;
@@ -40,13 +41,15 @@ struct BoneNode {
 } __attribute__((annotate("fractal")));
 
 struct BoneSegment {
-    uint32_t start_node, end_node;
-    float flexibility;       // 0 = rigid, 1 = very flexible
+    uint32_t id;
+    int32_t start_node_idx;
+    int32_t end_node_idx;
+    float flexibility;
     float break_threshold;
     uint32_t is_fractured;
-    float total_capacity;    // volume capacity for muscles/organs
+    float total_capacity;
     uint32_t organ_count;
-    uint32_t organ_start;    // index into organ list
+    uint32_t organ_start;    // internal: index into organ list
 } __attribute__((annotate("fractal")));
 
 struct MuscleStrand {
@@ -56,19 +59,22 @@ struct MuscleStrand {
 };
 
 struct MuscleGroup {
-    uint32_t origin_node, insertion_node;
-    uint32_t strand_start;   // index into strand list
+    uint32_t id;
+    int32_t origin_node_idx;
+    int32_t insertion_node_idx;
+    float activation;
+    uint32_t strand_start_idx;
     uint32_t strand_count;
-    float activation;        // 0-1
-    float current_volume;
+    float current_volume;    // internal
 } __attribute__((annotate("fractal")));
 
 struct Organ {
-    uint32_t type;           // 0=pump, 1=valve, 2=power_plant, 3=factory
+    uint32_t id;
+    int32_t type;
     float volume;
-    float active_state;      // 0-1 pulse intensity
+    float active_state;
     float energy_output;
-    uint32_t segment_idx;    // which segment this organ is attached to
+    int32_t segment_idx;
 } __attribute__((annotate("fractal")));
 
 struct Transport {
@@ -184,7 +190,7 @@ int32_t skelly_api_create_creature(SkellyAPIContext ctx, int32_t parent_idx,
     BoneNode& root = ctx->d_bones[root_idx];
     root.local_pos = make_float3(0, 0, 0);
     root.global_pos = make_float3(0, 0, 0);
-    root.parent_idx = (uint32_t)-1;
+    root.parent_idx = -1;
     root.is_fractured = 0;
     root.constraint_pitch_min = -1.5f; root.constraint_pitch_max = 1.5f;
     root.constraint_yaw_min = -1.5f; root.constraint_yaw_max = 1.5f;
@@ -207,8 +213,8 @@ int32_t skelly_api_create_creature(SkellyAPIContext ctx, int32_t parent_idx,
     // Create core segment
     uint32_t seg_idx = ctx->next_segment++;
     BoneSegment& seg = ctx->d_segments[seg_idx];
-    seg.start_node = root_idx;
-    seg.end_node = core_idx;
+    seg.start_node_idx = root_idx;
+    seg.end_node_idx = core_idx;
     seg.flexibility = 0.1f;
     seg.break_threshold = 100.0f;
     seg.is_fractured = 0;
@@ -220,9 +226,9 @@ int32_t skelly_api_create_creature(SkellyAPIContext ctx, int32_t parent_idx,
     // Create core muscle group
     uint32_t muscle_idx = ctx->next_muscle++;
     MuscleGroup& mg = ctx->d_muscles[muscle_idx];
-    mg.origin_node = root_idx;
-    mg.insertion_node = core_idx;
-    mg.strand_start = ctx->next_strand;
+    mg.origin_node_idx = root_idx;
+    mg.insertion_node_idx = core_idx;
+    mg.strand_start_idx = ctx->next_strand;
     mg.strand_count = 8;
     mg.activation = 0.0f;
     mg.current_volume = 0.0f;
@@ -273,7 +279,7 @@ void skelly_api_step(SkellyAPIContext ctx, float dt) __attribute__((annotate("fr
     // 1. Update bone global positions
     for (uint32_t idx = 0; idx < ctx->bone_count; idx++) {
         BoneNode& node = ctx->d_bones[idx];
-        if (node.parent_idx == (uint32_t)-1 || node.is_fractured) {
+        if (node.parent_idx == -1 || node.is_fractured) {
             node.global_pos = node.local_pos;
         } else {
             BoneNode& parent = ctx->d_bones[node.parent_idx];
@@ -284,8 +290,8 @@ void skelly_api_step(SkellyAPIContext ctx, float dt) __attribute__((annotate("fr
     // 2. Update muscles
     for (uint32_t idx = 0; idx < ctx->muscle_count; idx++) {
         MuscleGroup& mg = ctx->d_muscles[idx];
-        BoneNode& origin = ctx->d_bones[mg.origin_node];
-        BoneNode& insertion = ctx->d_bones[mg.insertion_node];
+        BoneNode& origin = ctx->d_bones[mg.origin_node_idx];
+        BoneNode& insertion = ctx->d_bones[mg.insertion_node_idx];
 
         float curr_len = float3_length(float3_sub(insertion.global_pos, origin.global_pos));
         float rest_len = curr_len;
@@ -293,13 +299,13 @@ void skelly_api_step(SkellyAPIContext ctx, float dt) __attribute__((annotate("fr
         float expansion = (rest_len > 0 && curr_len > 0) ? sqrtf(rest_len / curr_len) : 1.0f;
 
         for (uint32_t s = 0; s < mg.strand_count; s++) {
-            MuscleStrand& strand = ctx->d_strands[mg.strand_start + s];
+            MuscleStrand& strand = ctx->d_strands[mg.strand_start_idx + s];
             strand.current_r = strand.base_r * expansion * (1.0f + mg.activation);
         }
 
         mg.current_volume = 0.0f;
         for (uint32_t s = 0; s < mg.strand_count; s++) {
-            MuscleStrand& strand = ctx->d_strands[mg.strand_start + s];
+            MuscleStrand& strand = ctx->d_strands[mg.strand_start_idx + s];
             mg.current_volume += 3.14159f * strand.current_r * strand.current_r * curr_len;
         }
     }

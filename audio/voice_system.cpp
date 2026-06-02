@@ -6,6 +6,12 @@
 #include <cstring>
 #include <memory>
 #include <whisper.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/wait.h>
+#endif
 
 struct VoiceSystemImpl {
     whisper_context* whisper_ctx;
@@ -101,6 +107,31 @@ char* voice_recognize_speech(VoiceSystem ctx, int max_len) {
     return result;
 }
 
+static bool is_safe_path(const char* path) {
+    if (!path || !path[0]) return false;
+    // Only allow alphanumeric, underscore, hyphen, dot, and path separators
+    for (const char* p = path; *p; p++) {
+        if (!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') ||
+              (*p >= '0' && *p <= '9') || *p == '_' || *p == '-' ||
+              *p == '.' || *p == '/' || *p == '\\')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool is_safe_text(const char* text) {
+    if (!text || !text[0]) return false;
+    for (const char* p = text; *p; p++) {
+        char c = *p;
+        if (c < 32 && c != '\n' && c != '\r' && c != '\t') return false;
+        if (c == '"' || c == '\'' || c == '`' || c == ';' || c == '|' ||
+            c == '&' || c == '$' || c == '<' || c == '>' || c == '(' || c == ')' ||
+            c == '[' || c == ']' || c == '{' || c == '}' || c == '!' || c == '~') return false;
+    }
+    return true;
+}
+
 void voice_speak(VoiceSystem ctx, const char* text) {
     if (!ctx || !text) return;
     VoiceSystemImpl* impl = (VoiceSystemImpl*)ctx;
@@ -110,16 +141,51 @@ void voice_speak(VoiceSystem ctx, const char* text) {
     float warmth = impl->current_pillars[PILLAR_WARMTH];
     float harm = impl->current_pillars[PILLAR_HARM];
 
-    char command[4096];
-    snprintf(command, sizeof(command), "piper --volume %.1f --model %s --text \"%s\"",
-             impl->tts_volume * (1.0f - harm * 0.5f) * (0.5f + warmth * 0.5f),
-             impl->whisper_model_path ? impl->whisper_model_path : "default",
-             text);
+    float volume = impl->tts_volume * (1.0f - harm * 0.5f) * (0.5f + warmth * 0.5f);
+
+    // Validate model path before use
+    const char* model_path = impl->whisper_model_path;
+    if (model_path && !is_safe_path(model_path)) {
+        printf("[Voice] Error: Invalid model path rejected (contains unsafe characters)\n");
+        return;
+    }
+    if (!model_path) model_path = "default";
+
+    // Validate speech text to prevent command injection
+    if (!is_safe_text(text)) {
+        printf("[Voice] Error: Invalid speech text rejected (contains unsafe characters)\n");
+        return;
+    }
+
+    char vol_arg[32];
+    snprintf(vol_arg, sizeof(vol_arg), "%.1f", volume);
 
 #ifdef _WIN32
-    system(command);
+    STARTUPINFOA si = {sizeof(si)};
+    PROCESS_INFORMATION pi;
+    char cmdline[8192];
+    snprintf(cmdline, sizeof(cmdline), "piper --volume %s --model %s --text \"%s\"",
+             vol_arg, model_path, text);
+    if (!CreateProcessA("piper.exe", cmdline, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        printf("[Voice] Error: Failed to execute piper (error %lu)\n", GetLastError());
+        return;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 #else
-    system(command);
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp("piper", "piper", "--volume", vol_arg, "--model", model_path,
+               "--text", text, (char*)NULL);
+        _exit(1);
+    } else if (pid > 0) {
+        int status;
+        waitpid(pid, &status, 0);
+    } else {
+        printf("[Voice] Error: fork failed\n");
+        return;
+    }
 #endif
 
     printf("[Voice] Speech synthesized\n");

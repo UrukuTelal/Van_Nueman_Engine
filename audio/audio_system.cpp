@@ -5,9 +5,12 @@
 #include "miniaudio.h"
 #include "wht.h"
 #include "../include/Entity.h"
+#include "../scale/SemanticProjection.h"
 
 #include <cstring>
+#include <cstdlib>
 #include <cstdio>
+#include <vector>
 
 struct AudioSystemImpl {
     ma_engine engine;
@@ -16,6 +19,7 @@ struct AudioSystemImpl {
     float master_volume;
     float music_volume;
     float sfx_volume;
+    std::vector<ma_sound*> active_sfx;
 };
 
 AudioSystem audio_init(float master_volume) {
@@ -43,6 +47,11 @@ void audio_shutdown(AudioSystem ctx) {
     if (impl->music_playing) {
         ma_sound_uninit(&impl->music_sound);
     }
+    for (auto sfx : impl->active_sfx) {
+        ma_sound_uninit(sfx);
+        delete sfx;
+    }
+    impl->active_sfx.clear();
     ma_engine_uninit(&impl->engine);
     delete impl;
 }
@@ -72,15 +81,15 @@ int32_t audio_play_sfx(AudioSystem ctx, const char* file_path, float volume) {
     if (!ctx) return -1;
     AudioSystemImpl* impl = (AudioSystemImpl*)ctx;
     
-    ma_sound sfx;
-    if (ma_sound_init_from_file(&impl->engine, file_path, 0, nullptr, nullptr, &sfx) != MA_SUCCESS) {
+    ma_sound* sfx = new ma_sound();
+    if (ma_sound_init_from_file(&impl->engine, file_path, 0, nullptr, nullptr, sfx) != MA_SUCCESS) {
+        delete sfx;
         return -1;
     }
     
-    ma_sound_set_volume(&sfx, volume * impl->sfx_volume);
-    ma_sound_start(&sfx);
-    
-    // In a real implementation, track and cleanup SFX sounds
+    ma_sound_set_volume(sfx, volume * impl->sfx_volume);
+    ma_sound_start(sfx);
+    impl->active_sfx.push_back(sfx);
     return 0;
 }
 
@@ -119,15 +128,18 @@ void audio_set_sfx_volume(AudioSystem ctx, float volume) {
 // Voice system integration (NEW)
 static VoiceSystemHandle voice_ctx = nullptr;
 
+struct VoiceSystem {
+    int placeholder;
+};
+
 VoiceSystemHandle audio_init_voice(const char* whisper_model_path) {
     printf("[Audio] Initializing voice system with model: %s\n", whisper_model_path ? whisper_model_path : "(none)");
     
     // In real implementation:
-    // 1. Initialize Whisper.cpp for STT (local, ~1GB model)
-    // 2. Initialize Piper TTS for TTS (local, lightweight)
-    
-    VoiceSystemHandle ctx = (VoiceSystemHandle)malloc(sizeof(VoiceSystemHandle));
-    // ... initialize ...
+     // 1. Initialize Whisper.cpp for STT (local, ~1GB model)
+     // 2. Initialize Piper TTS for TTS (local, lightweight)
+     
+    VoiceSystemHandle ctx = (VoiceSystemHandle)malloc(sizeof(struct VoiceSystem));
     
     voice_ctx = ctx;
     return ctx;
@@ -167,54 +179,66 @@ void audio_stop_speaking(VoiceSystemHandle voice_ctx) {
 void audio_apply_voice_pillar_effects(VoiceSystemHandle voice_ctx, const float pillars[NUM_PILLARS]) {
     if (!voice_ctx || !pillars) return;
     
-    // Pillar_12_Harm (Index 12): Increase distortion/glitchy voice
-    float harm = pillars[12];
-    if (harm > 0.7f) {
-        printf("[Voice] Harm > 0.7 - Robotic/glitchy voice (SKIP: ΔH threshold)\n");
-        return;  // DO NOT PROCEED (per Pillar Harm rule)
+    // Build PillarStateVector from raw array and project to cognitive layer
+    PillarStateVector psv;
+    for (int i = 0; i < NUM_PILLARS; i++) psv.pillars[i] = vn::fp20_t(pillars[i]);
+    CognitiveProjection cp = CognitiveProjection::project(psv);
+    
+    // High cognitive load (Harm projection): robotic/glitchy voice
+    if (cp.cognitive_load > 0.7f) {
+        printf("[Voice] Cognitive load > 0.7 - Robotic/glitchy voice\n");
+        return;
     }
     
-    // Pillar_09_Warmth (Index 9): Smoother/warmer voice
-    float warmth = pillars[9];
-    if (warmth > 0.7f) {
-        printf("[Voice] Warmth > 0.7 - Smooth/calm voice\n");
-        audio_speak(voice_ctx, "Voice is now smoother", warmth * 0.8f);
+    // High comfort (Warmth projection): smoother/warmer voice
+    if (cp.comfort > 0.7f) {
+        printf("[Voice] Comfort > 0.7 - Smooth/calm voice\n");
+        audio_speak(voice_ctx, "Voice is now smoother", cp.comfort * 0.8f);
     }
     
-    // Pillar_00_Awareness (Index 0): Effective awareness with distortion
-    float distortion = pillars[13];  // Pillar_13_Distortion
-    float effective_awareness = pillars[0] * (1.0f - distortion);
-    printf("[Voice] Effective Awareness: %.2f (Awareness=%.2f, Distortion=%.2f)\n", 
-           effective_awareness, pillars[0], distortion);
+    // Effective outward awareness modulated by imaginativeness (Distortion projection)
+    float outward = 1.0f - cp.focus_inward;
+    float effective_awareness = outward * (1.0f - cp.imaginativeness);
+    printf("[Voice] Effective Awareness: %.2f (outward=%.2f, imaginativeness=%.2f)\n", 
+           effective_awareness, outward, cp.imaginativeness);
 }
 
-// Pillar-driven audio effects (existing - modified to use 16 pillars)
+// Pillar-driven audio effects — uses CognitiveProjection for emotional mapping
 void audio_apply_pillar_effects(AudioSystem ctx, const float pillars[NUM_PILLARS]) {
     if (!ctx || !pillars) return;
     AudioSystemImpl* impl = (AudioSystemImpl*)ctx;
     
-    // Harm pillar increases dissonance (lower volume, add "distortion")
-    float harm = pillars[PILLAR_HARM];
-    if (harm > 0.7f) {
-        // High harm = tense music
-        ma_engine_set_volume(&impl->engine, impl->master_volume * (1.0f - harm * 0.3f));
+    PillarStateVector psv;
+    for (int i = 0; i < NUM_PILLARS; i++) psv.pillars[i] = vn::fp20_t(pillars[i]);
+    CognitiveProjection cp = CognitiveProjection::project(psv);
+    
+    // High cognitive load (Harm projection): tense music, reduced volume
+    if (cp.cognitive_load > 0.7f) {
+        ma_engine_set_volume(&impl->engine, impl->master_volume * (1.0f - cp.cognitive_load * 0.3f));
     }
     
-    // Warmth pillar increases soothing (smoother, calmer)
-    float warmth = pillars[PILLAR_WARMTH];
-    if (warmth > 0.7f) {
-        // High warmth = calm music
-        ma_engine_set_volume(&impl->engine, impl->master_volume * (0.8f + warmth * 0.2f));
+    // High comfort (Warmth projection): calm music
+    if (cp.comfort > 0.7f) {
+        ma_engine_set_volume(&impl->engine, impl->master_volume * (0.8f + cp.comfort * 0.2f));
     }
     
-    // Force pillar increases tempo/intensity
-    float force = pillars[PILLAR_FORCE];
+    // Agency (Force + Willpower projection): tempo/intensity
     // Would control tempo/pitch in real implementation
 }
 
 void audio_update(AudioSystem ctx, float dt) {
-    // Process pending SFX cleanup, fade effects, etc.
-    (void)ctx; (void)dt;
+    if (!ctx) return;
+    AudioSystemImpl* impl = (AudioSystemImpl*)ctx;
+    (void)dt;
+    for (auto it = impl->active_sfx.begin(); it != impl->active_sfx.end(); ) {
+        if (!ma_sound_is_playing(*it)) {
+            ma_sound_uninit(*it);
+            delete *it;
+            it = impl->active_sfx.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 // WHT-based audio processing for 32-channel mixing
@@ -229,37 +253,35 @@ void audio_init_wht_weights(float weights[WHT_N][WHT_N]) {
 
 // Process audio block using WHT (O(n log n) instead of O(n²))
 void audio_process_wht_block(float* input_block, float* output_block, int block_size) {
-    if (!s_wht_initialized || block_size != WHT_N) {
-        // Fallback to standard processing
-        for (int out = 0; out < WHT_N; out++) {
-            output_block[out] = 0.0f;
-            for (int in = 0; in < WHT_N; in++) {
-                output_block[out] += input_block[in] * s_wht_weights[out][in];
-            }
+    if (block_size != WHT_N) {
+        for (int i = 0; i < block_size && i < WHT_N; i++) {
+            output_block[i] = input_block[i];
         }
         return;
     }
     
-    // Transform input to Hadamard domain
-    float input_wht[WHT_N];
-    for (int i = 0; i < WHT_N; i++) {
-        input_wht[i] = input_block[i];
-    }
-    fwht(input_wht, WHT_LOG2_N);
-    
-    // Element-wise multiply in Hadamard domain (WHT coeffs are ±1 = add/sub)
-    float output_wht[WHT_N] = {0};
-    for (int out = 0; out < WHT_N; out++) {
+    if (!s_wht_initialized) {
         for (int i = 0; i < WHT_N; i++) {
-            output_wht[out] += input_wht[i] * s_wht_weights[out][i];
+            output_block[i] = input_block[i];
         }
+        return;
     }
     
-    // Inverse transform
-    ifwht(output_wht, WHT_LOG2_N);
-    
-    // Scale by N and copy to output
+    // WHT convolution: y = ifwht( fwht(x) * fwht(h) ) / N
+    // Transform input to Hadamard domain
+    float x_wht[WHT_N];
     for (int i = 0; i < WHT_N; i++) {
-        output_block[i] = output_wht[i] / WHT_N;
+        x_wht[i] = input_block[i];
+    }
+    fwht(x_wht, WHT_LOG2_N);
+    
+    // For each output channel: element-wise multiply in Hadamard domain, invert, scale
+    for (int out = 0; out < WHT_N; out++) {
+        float y_wht[WHT_N];
+        for (int i = 0; i < WHT_N; i++) {
+            y_wht[i] = x_wht[i] * s_wht_weights[out][i];
+        }
+        ifwht(y_wht, WHT_LOG2_N);
+        output_block[out] = y_wht[0] / WHT_N;
     }
 }
