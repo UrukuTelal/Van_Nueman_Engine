@@ -1,9 +1,24 @@
-// Van Nueman Skelly Compute - vncc C++ Version
-// Compile: vncc -emit-spirv skelly_compute.cpp -o skelly_compute.spv
-//          vncc -emit-llvm skelly_compute.cpp -o skelly_compute.bc
+// Van Nueman Skelly Compute - UGC C++ Version
+// Compile: ugc -o skelly_compute.spv skelly_compute.cpp
+//          ugc -o skelly_compute.bc skelly_compute.cpp
 
+#ifndef UGC_COMPILER
 #include <cstdint>
+#endif
 #include <cmath>
+
+// Strip annotate attributes for SPIR-V (llvm.metadata strings can't translate)
+#if defined(__SPIR__) || defined(__SPIR64__)
+#define ANNOTATE_FRACTAL
+#else
+#define ANNOTATE_FRACTAL ANNOTATE_FRACTAL
+#endif
+
+// SPIR-V compatible math builtins (map to GLSL.std.450)
+namespace {
+inline float sqrtf_(float x)  { return __builtin_elementwise_sqrt(x); }
+inline float fabsf_(float x)  { return __builtin_elementwise_abs(x); }
+}
 
 // Float3 operations (vncc maps to SPIR-V/PTX float3)
 struct float3 {
@@ -38,7 +53,7 @@ float3 float3_cross(float3 a, float3 b) {
 }
 
 float float3_length(float3 v) {
-    return sqrtf(float3_dot(v, v));
+    return sqrtf_(float3_dot(v, v));
 }
 
 float3 float3_normalize(float3 v) {
@@ -54,9 +69,10 @@ float3 float3_normalize(float3 v) {
 
 // Bone node (joint) - [[fractal]] applies at entity/server/federation
 struct BoneNode {
+    uint32_t id;
     float3 local_pos;
     float3 global_pos;
-    uint32_t parent_idx;
+    int32_t parent_idx;      // -1 for root
     uint32_t is_fractured;
     float constraint_pitch_min, constraint_pitch_max;
     float constraint_yaw_min, constraint_yaw_max;
@@ -65,7 +81,9 @@ struct BoneNode {
 
 // Bone segment (between two nodes)
 struct BoneSegment {
-    uint32_t start_node, end_node;
+    uint32_t id;
+    int32_t start_node_idx;  // -1 if invalid
+    int32_t end_node_idx;
     float flexibility;       // 0 = rigid, 1 = very flexible
     float break_threshold;
     uint32_t is_fractured;
@@ -83,20 +101,23 @@ struct MuscleStrand {
 
 // Volumetric muscle group
 struct MuscleGroup {
-    uint32_t origin_node, insertion_node;
-    uint32_t strand_start;   // index into strand list
-    uint32_t strand_count;
+    uint32_t id;
+    int32_t origin_node_idx;
+    int32_t insertion_node_idx;
     float activation;        // 0-1
-    float current_volume;
+    uint32_t strand_start_idx;
+    uint32_t strand_count;
+    float current_volume;    // internal
 };
 
 // Organ (energy production, processing, etc.)
 struct Organ {
+    uint32_t id;
     uint32_t type;           // 0=pump, 1=valve, 2=power_plant, 3=factory
     float volume;
     float active_state;      // 0-1 pulse intensity
     float energy_output;
-    uint32_t segment_idx;    // which segment this organ is attached to
+    int32_t segment_idx;     // which segment this organ is attached to
 };
 
 // Transport system (Conduit/Gate/Driver)
@@ -107,14 +128,14 @@ struct Transport {
     float pressure;
     uint32_t is_severed;
     float elasticity;
-} __attribute__((annotate("fractal")));
+} ANNOTATE_FRACTAL;
 
 // Interstitial fluid (specialized transport with turgor pressure)
 struct InterstitialFluid {
     uint32_t transport_idx;
     uint32_t segment_idx;
     float turgor_pressure;
-} __attribute__((annotate("fractal")));
+} ANNOTATE_FRACTAL;
 
 // Entity Skelly instance
 struct SkellyInstance {
@@ -124,13 +145,13 @@ struct SkellyInstance {
     uint32_t muscle_start, muscle_count;
     uint32_t organ_start, organ_count;
     uint32_t transport_start, transport_count;
-} __attribute__((annotate("fractal")));
+} ANNOTATE_FRACTAL;
 
 // Update bone global positions
 void skelly_update_bones(BoneNode* bones, uint32_t count) {
     for (uint32_t idx = 0; idx < count; idx++) {
         BoneNode& node = bones[idx];
-        if (node.parent_idx == (uint32_t)-1 || node.is_fractured) {
+        if (node.parent_idx == -1 || node.is_fractured) {
             node.global_pos = node.local_pos;
         } else {
             BoneNode& parent = bones[node.parent_idx];
@@ -144,24 +165,24 @@ void skelly_update_muscles(MuscleGroup* muscles, MuscleStrand* strands,
                            BoneNode* bones, uint32_t count) {
     for (uint32_t idx = 0; idx < count; idx++) {
         MuscleGroup& mg = muscles[idx];
-        BoneNode& origin = bones[mg.origin_node];
-        BoneNode& insertion = bones[mg.insertion_node];
+        BoneNode& origin = bones[mg.origin_node_idx];
+        BoneNode& insertion = bones[mg.insertion_node_idx];
 
         float curr_len = float3_length(float3_sub(insertion.global_pos, origin.global_pos));
         float rest_len = curr_len;  // Would store rest length separately
 
-        float expansion = (rest_len > 0 && curr_len > 0) ? sqrtf(rest_len / curr_len) : 1.0f;
+        float expansion = (rest_len > 0 && curr_len > 0) ? sqrtf_(rest_len / curr_len) : 1.0f;
 
         // Update all strands
         for (uint32_t s = 0; s < mg.strand_count; s++) {
-            MuscleStrand& strand = strands[mg.strand_start + s];
+            MuscleStrand& strand = strands[mg.strand_start_idx + s];
             strand.current_r = strand.base_r * expansion * (1.0f + mg.activation);
         }
 
         // Calculate new volume
         mg.current_volume = 0.0f;
         for (uint32_t s = 0; s < mg.strand_count; s++) {
-            MuscleStrand& strand = strands[mg.strand_start + s];
+            MuscleStrand& strand = strands[mg.strand_start_idx + s];
             mg.current_volume += M_PI * strand.current_r * strand.current_r * curr_len;
         }
     }
@@ -214,7 +235,7 @@ void skelly_turgor(InterstitialFluid* fluids, uint32_t fluid_count,
 // [[fractal]] - works at entity/server/federation scale
 void skelly_deform_svo(SkellyInstance* instances, uint32_t instance_count,
                        BoneSegment* segments, MuscleGroup* muscles,
-                       uint32_t* dirty_chunks) __attribute__((annotate("fractal"))) {
+                       uint32_t* dirty_chunks) ANNOTATE_FRACTAL {
     for (uint32_t idx = 0; idx < instance_count; idx++) {
         SkellyInstance& inst = instances[idx];
 

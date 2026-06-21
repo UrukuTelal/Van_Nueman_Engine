@@ -3,8 +3,11 @@
 #include <cstring>
 #include <iostream>
 
+static const size_t MAX_BODY_SIZE = 65536;
+
 RestApi::RestApi(SimulationTickLoop* simulation)
     : simulation_(simulation) {
+    god_field.init();
 }
 
 bool RestApi::start(int port) {
@@ -16,12 +19,23 @@ bool RestApi::start(int port) {
     std::cout << "  GET  /api/agents/{id}" << std::endl;
     std::cout << "  POST /api/simulation/tick" << std::endl;
     std::cout << "  GET  /api/chunks/{x}/{y}/{z}" << std::endl;
+    std::cout << "  GET  /api/god-nodes" << std::endl;
+    std::cout << "  POST /api/god-nodes/create" << std::endl;
+    std::cout << "  POST /api/god-nodes/decommission" << std::endl;
     return true;
 }
 
 HttpResponse RestApi::handle_request(const std::string& method,
                                       const std::string& path,
                                       const std::string& body) {
+    // Reject oversized request bodies or paths
+    if (body.size() > MAX_BODY_SIZE) {
+        return {413, "text/plain", "Request body too large"};
+    }
+    if (path.size() > MAX_BODY_SIZE) {
+        return {414, "text/plain", "URI too long"};
+    }
+
     // Simple routing
     if (method == "GET" && path == "/api/world/state") {
         return get_world_state();
@@ -52,6 +66,19 @@ HttpResponse RestApi::handle_request(const std::string& method,
         return {501, "text/plain", "Chunk endpoint not fully implemented"};
     }
     
+    // ── Deity endpoints ──────────────────────────────────────
+    if (method == "GET" && path == "/api/god-nodes") {
+        return get_god_nodes();
+    }
+    
+    if (method == "POST" && path == "/api/god-nodes/create") {
+        return post_god_node_create(body);
+    }
+    
+    if (method == "POST" && path == "/api/god-nodes/decommission") {
+        return post_god_node_decommission(body);
+    }
+    
     return {404, "text/plain", "Not found"};
 }
 
@@ -77,18 +104,24 @@ HttpResponse RestApi::get_agent(int agent_id) {
         return {500, "application/json", "{\"error\":\"No simulation\"}"};
     }
     
-    const auto& agents = simulation_->get_agents();
-    if (agent_id < 0 || agent_id >= static_cast<int>(agents.size()) || !agents[agent_id].active) {
+    const auto& ecs = simulation_->get_agent_ecs();
+    if (agent_id < 0 || static_cast<size_t>(agent_id) >= ecs.size() || !ecs.active(static_cast<vn::simulation::AgentECS::Index>(agent_id))) {
         return {404, "application/json", "{\"error\":\"Agent not found\"}"};
     }
     
-    const auto& agent = agents[agent_id];
-    const auto& pillars = agent.cognition->get_pillars();
+    auto idx = static_cast<vn::simulation::AgentECS::Index>(agent_id);
+    auto pillarState = ecs.get_pillars(idx);
+    float x = ecs.x(idx);
+    float y = ecs.y(idx);
+    float z = ecs.z(idx);
+    
+    PillarVector pillars;
+    for (int i = 0; i < NumPillars; i++) pillars[i] = pillarState[i];
     
     std::ostringstream json;
     json << "{";
-    json << "\"id\":" << agent.id << ",";
-    json << "\"position\":{\"x\":" << agent.x << ",\"y\":" << agent.y << ",\"z\":" << agent.z << "},";
+    json << "\"id\":" << agent_id << ",";
+    json << "\"position\":{\"x\":" << x << ",\"y\":" << y << ",\"z\":" << z << "},";
     json << "\"pillars\":" << pillar_vector_to_json(pillars);
     json << "}";
     
@@ -100,16 +133,19 @@ HttpResponse RestApi::get_agents_list() {
         return {500, "application/json", "{\"error\":\"No simulation\"}"};
     }
     
-    const auto& agents = simulation_->get_agents();
+    const auto& ecs = simulation_->get_agent_ecs();
     std::ostringstream json;
     json << "{\"agents\":[";
     
     bool first = true;
-    for (const auto& agent : agents) {
-        if (!agent.active) continue;
+    for (size_t i = 0; i < ecs.size(); ++i) {
+        if (!ecs.active(static_cast<vn::simulation::AgentECS::Index>(i))) continue;
         if (!first) json << ",";
         first = false;
-        json << "{\"id\":" << agent.id << ",\"x\":" << agent.x << ",\"y\":" << agent.y << ",\"z\":" << agent.z << "}";
+        float x = ecs.x(static_cast<vn::simulation::AgentECS::Index>(i));
+        float y = ecs.y(static_cast<vn::simulation::AgentECS::Index>(i));
+        float z = ecs.z(static_cast<vn::simulation::AgentECS::Index>(i));
+        json << "{\"id\":" << static_cast<int>(i) << ",\"x\":" << x << ",\"y\":" << y << ",\"z\":" << z << "}";
     }
     
     json << "]}";
@@ -123,6 +159,8 @@ HttpResponse RestApi::post_tick(const std::string& body) {
     
     int ticks = 1;
     parse_json_int(body, "ticks", ticks);
+    if (ticks < 1) ticks = 1;
+    if (ticks > 10000) ticks = 10000;
     
     for (int i = 0; i < ticks; i++) {
         simulation_->tick(1.0f / 60.0f);
@@ -133,18 +171,91 @@ HttpResponse RestApi::post_tick(const std::string& body) {
     return {200, "application/json", json.str()};
 }
 
-std::string RestApi::pillar_vector_to_json(const std::array<float, NUM_PILLARS>& pillars) {
+std::string RestApi::pillar_vector_to_json(const PillarVector& pillars) {
     std::ostringstream json;
     json << "{";
     const char* names[] = {"awareness", "willpower", "force", "influence", "resistance",
                             "integrity", "cohesion", "relation", "presence", "warmth",
                             "memory", "attraction", "harm", "distortion", "flux", "depth"};
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         if (i > 0) json << ",";
         json << "\"" << names[i] << "\":" << pillars[i];
     }
     json << "}";
     return json.str();
+}
+
+// ── Deity endpoint implementations ──────────────────────────────
+
+HttpResponse RestApi::get_god_nodes() {
+    std::ostringstream json;
+    json << "{";
+    json << "\"active_count\":" << god_field.active_count() << ",";
+    json << "\"node_count\":" << god_field.node_count << ",";
+    json << "\"nodes\":[";
+    
+    bool first = true;
+    for (int i = 0; i < god_field.node_count; i++) {
+        if (!first) json << ",";
+        first = false;
+        json << "{";
+        json << "\"uid\":\"" << god_field.nodes[i].uid << "\",";
+        json << "\"name\":\"" << god_field.nodes[i].name << "\",";
+        json << "\"depth\":" << god_field.nodes[i].depth << ",";
+        json << "\"is_alive\":" << (god_field.nodes[i].is_alive() ? "true" : "false") << ",";
+        json << "\"subscriber_count\":" << god_field.nodes[i].subscriber_count << ",";
+        json << "\"age\":" << god_field.nodes[i].age;
+        json << "}";
+    }
+    json << "],";
+    json << "\"decommissioned_count\":" << god_field.decommissioned_count;
+    json << "}";
+    
+    return {200, "application/json", json.str()};
+}
+
+HttpResponse RestApi::post_god_node_create(const std::string& body) {
+    // Simple JSON name extraction
+    std::string search = "\"name\":\"";
+    size_t pos = body.find(search);
+    if (pos == std::string::npos) {
+        return {400, "application/json", "{\"error\":\"Missing name\"}"};
+    }
+    pos += search.length();
+    size_t end = body.find("\"", pos);
+    std::string name = body.substr(pos, end - pos);
+    
+    GodNode* node = god_field.create(name.c_str());
+    if (!node) {
+        return {500, "application/json", "{\"error\":\"Max god nodes reached\"}"};
+    }
+    
+    std::ostringstream json;
+    json << "{";
+    json << "\"uid\":\"" << node->uid << "\",";
+    json << "\"name\":\"" << node->name << "\",";
+    json << "\"depth\":" << node->depth << ",";
+    json << "\"is_alive\":true";
+    json << "}";
+    return {200, "application/json", json.str()};
+}
+
+HttpResponse RestApi::post_god_node_decommission(const std::string& body) {
+    std::string search = "\"god_uid\":\"";
+    size_t pos = body.find(search);
+    if (pos == std::string::npos) {
+        return {400, "application/json", "{\"error\":\"Missing god_uid\"}"};
+    }
+    pos += search.length();
+    size_t end = body.find("\"", pos);
+    std::string uid = body.substr(pos, end - pos);
+    
+    bool success = god_field.decommission(uid.c_str());
+    if (!success) {
+        return {404, "application/json", "{\"error\":\"God node not found\"}"};
+    }
+    
+    return {200, "application/json", "{\"success\":true}"};
 }
 
 bool RestApi::parse_json_int(const std::string& body, const std::string& key, int& out) {

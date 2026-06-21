@@ -5,7 +5,14 @@
 #include <vulkan/vulkan.h>
 #include <cstdint>
 #include <vector>
+
+struct SkellyPushConstants {
+    uint32_t bone_count;
+    uint32_t muscle_count;
+    uint32_t organ_count;
+};
 #include "../include/SkellyGPU.h"
+#include "../fll/include/FLLShaders.h"
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
@@ -54,15 +61,27 @@ public:
     bool uploadBones(BoneGPU* bones, uint32_t count);
     bool uploadMuscles(MuscleGPU* muscles, uint32_t count);
     bool uploadOrgans(OrganGPU* organs, uint32_t count);
+    bool uploadAgents(const float* positions, const float* colors, uint32_t count,
+                      const float* sizes = nullptr, const float* alphas = nullptr);
     void updateCamera(const CameraUBO& cam);
     void* getWindow() const { return window; }
+
+    // ── FLL Glyph Rendering ─────────────────────────────────────
+    bool createFLLPipeline();
+    bool createSkellyPipeline();
+    bool uploadFLLNodes(const void* node_data, uint32_t node_count, size_t node_stride);
+    void dispatchFLL(VkCommandBuffer cmd, const vn::fll::FLLPushConstants& pc);
+    void setFLLPushConstants(const vn::fll::FLLPushConstants& pc)
+        { fllPushConstants_ = pc; hasFLLPushConstants_ = true; }
     
     // Vulkan handle getters for ImGui integration
     VkInstance getVkInstance() const { return instance; }
     VkPhysicalDevice getVkPhysicalDevice() const { return physicalDevice; }
     VkDevice getVkDevice() const { return device; }
     VkQueue getVkQueue() const { return graphicsQueue; }
+    VkQueue getVkComputeQueue() const { return computeQueue; }
     uint32_t getVkQueueFamily() const { return graphicsFamily; }
+    uint32_t getVkComputeFamily() const { return computeFamily; }
     VkRenderPass getVkRenderPass() const { return renderPass; }
     VkCommandBuffer getVkCommandBuffer() const { return commandBuffers ? commandBuffers[currentFrame] : VK_NULL_HANDLE; }
     VkDescriptorPool getVkDescriptorPool() const { return descriptorPool; }
@@ -131,11 +150,33 @@ private:
     VkDeviceMemory organBufferMemory = VK_NULL_HANDLE;
     uint32_t organCount = 0;
 
+    // Agent marker buffer
+    VkBuffer agentBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory agentBufferMemory = VK_NULL_HANDLE;
+    uint32_t agentBufferCapacity = 0;
+
     // Output image (compute shader writes here)
     VkImage outputImage = VK_NULL_HANDLE;
     VkDeviceMemory outputImageMemory = VK_NULL_HANDLE;
     VkImageView outputImageView = VK_NULL_HANDLE;
     VkSampler outputSampler = VK_NULL_HANDLE;
+
+    // ── FLL Rendering State ─────────────────────────────────────
+    VkPipelineLayout fllPipelineLayout = VK_NULL_HANDLE;
+    VkPipeline fllComputePipeline = VK_NULL_HANDLE;
+    VkDescriptorSetLayout fllDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet fllDescriptorSet = VK_NULL_HANDLE;
+    VkBuffer fllNodeBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory fllNodeBufferMemory = VK_NULL_HANDLE;
+    uint32_t fllNodeCapacity = 0;
+    vn::fll::FLLPushConstants fllPushConstants_{};
+    bool hasFLLPushConstants_ = false;
+
+    // ── Skelly SDF Rendering State ──────────────────────────────
+    VkPipelineLayout skellyPipelineLayout = VK_NULL_HANDLE;
+    VkPipeline skellyPipeline = VK_NULL_HANDLE;
+    VkDescriptorSetLayout skellyDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet skellyDescriptorSet = VK_NULL_HANDLE;
 
     // Framebuffers
     std::vector<VkFramebuffer> swapchainFramebuffers;

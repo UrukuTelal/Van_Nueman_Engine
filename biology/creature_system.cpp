@@ -1,6 +1,7 @@
 // creature_system.cpp - 16-pillar driven creature growth system implementation
 
 #include "creature_system.h"
+#include "../scale/SemanticProjection.h"
 #include <algorithm>
 #include <cstring>
 
@@ -170,7 +171,7 @@ Creature::Creature(const std::string& name, const std::string& type, float age)
     skeleton_ = std::make_unique<Skeleton>();
     
     scale_ = physics_->get_scale(age);
-    pillar_state_.fill(0.5f);
+    pillar_state_.fill(vn::fp20_t(0.5f));
     
     build_systems();
 }
@@ -295,20 +296,18 @@ void Creature::receive_stimulus(const std::string& stimulus, float intensity) {
 }
 
 void Creature::apply_pillar_influence(const PillarStateVector& pillars, float influence_strength) {
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         pillar_state_.pillars[i] += (pillars.pillars[i] - 0.5f) * influence_strength * 0.1f;
         pillar_state_.pillars[i] = std::fmax(0.0f, std::fmin(1.0f, pillar_state_.pillars[i]));
     }
 }
 
 void Creature::update_pillars(float dt) {
-    float awareness = (pillar_state_[PILLAR_AWARENESS] + pillar_state_[PILLAR_WILLPOWER]) * 0.5f;
-    float harm = pillar_state_[PILLAR_HARM];
-    float depth = pillar_state_[PILLAR_DEPTH];
+    BiologicalProjection bp = BiologicalProjection::project(pillar_state_);
     
-    skin_tension_ = harm * muscle_activation_ * 0.5f;
+    skin_tension_ = bp.stress_level * muscle_activation_ * 0.5f;
     
-    float health_change = (awareness * 0.1f - harm * 0.05f) * dt;
+    float health_change = (bp.willpower_stamina * 0.1f - bp.stress_level * 0.05f) * dt;
     overall_health_ = std::fmax(0.0f, std::fmin(1.0f, overall_health_ + health_change));
 }
 
@@ -347,10 +346,14 @@ CreatureState Creature::get_state() const {
     state.skin_tension = skin_tension_;
     state.alertness = alertness_;
     state.stress = stress_;
+    state.pos_x = position_.x;
+    state.pos_y = position_.y;
+    state.pos_z = position_.z;
     state.stage = physics_ ? physics_->get_growth_stage(age_) : GrowthStage::Adult;
     state.alive = alive_;
-    state.is_dreaming = pillar_state_[PILLAR_MEMORY] > 0.7f;
-    state.in_shadow = pillar_state_[PILLAR_DISTORTION] > 0.5f;
+    CognitiveProjection cp = CognitiveProjection::project(pillar_state_);
+    state.is_dreaming = cp.imaginativeness > 0.7f;
+    state.in_shadow = cp.cognitive_load > 0.5f;
     state.pillars = pillar_state_;
     return state;
 }

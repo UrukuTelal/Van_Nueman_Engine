@@ -2,6 +2,28 @@
 
 #define NUM_PILLARS 16
 #define MAX_ENTITIES 1024
+#define PI 3.14159265
+
+// ── Bloch Sphere Helpers ─────────────────────────────────────
+// Convert pillar value [0,1] to Bloch theta [0,PI]
+float bloch_value_to_theta(float v) {
+    v = clamp(v, 0.0, 1.0);
+    return acos(2.0 * v - 1.0);
+}
+
+// Convert Bloch theta [0,PI] to pillar value [0,1]
+float bloch_theta_to_value(float t) {
+    t = clamp(t, 0.0, PI);
+    return (cos(t) + 1.0) * 0.5;
+}
+
+// Apply a Bloch rotation (theta delta) to a pillar value
+float bloch_rotate(float value, float delta_theta) {
+    float theta = bloch_value_to_theta(value);
+    return bloch_theta_to_value(theta + delta_theta);
+}
+
+// ── Data Structures ──────────────────────────────────────────
 
 struct EntityPSV {
     float pillars[NUM_PILLARS];
@@ -37,6 +59,8 @@ layout(set = 0, binding = 2) uniform Params {
     uint mode; // 0 = psv_to_visual, 1 = process_shadows
 } params;
 
+// ── Main ─────────────────────────────────────────────────────
+
 void main() {
     uint id = gl_GlobalInvocationID.x;
     if (id >= params.entity_count) return;
@@ -44,21 +68,38 @@ void main() {
     EntityPSV e = in_entities.entities[id];
     VisualOutput v;
 
-    // PSV to Visual mapping
-    float awareness = (e.pillars[0] + e.pillars[1] + e.pillars[2] +
-                       e.pillars[3] + e.pillars[4] + e.pillars[5]) / 6.0;
-    float harm = (e.pillars[6] + e.pillars[7] + e.pillars[8] +
-                  e.pillars[9] + e.pillars[10] + e.pillars[11]) / 6.0;
-    float depth = (e.pillars[12] + e.pillars[13] + e.pillars[14] + e.pillars[15]) / 4.0;
-
+    // PSV to Visual mapping — using Bloch sphere-derived values
+    // where each pillar's VISUAL color is the Bloch coherence of
+    // its semantic group, NOT a scalar average.
+    
+    // Red channel: Force/Willpower group coherence
+    float f_theta = bloch_value_to_theta(e.pillars[1]);  // Willpower
+    float p_theta = bloch_value_to_theta(e.pillars[2]);  // Force
+    float red_coherence = cos(f_theta) * cos(p_theta);   // how aligned they are
+    
+    // Green channel: Harm/Distortion group torsion
+    float h_phi = e.pillars[12] * PI;  // Harm as phi twist
+    float d_phi = e.pillars[13] * PI;  // Distortion as phi twist
+    float green_torsion = cos(h_phi - d_phi);  // phase difference
+    
+    // Blue channel: Depth/Flux group resonance
+    float depth_theta = bloch_value_to_theta(e.pillars[15]);
+    float flux_theta = bloch_value_to_theta(e.pillars[14]);
+    float blue_resonance = cos(depth_theta - flux_theta);
+    
+    // Dream/shadow modulation
     float dream_influence = e.vividness * e.lucid_level;
     float shadow_influence = e.shadow_emergence * (e.lucid_level * 0.5);
-
-    v.r = clamp(awareness + dream_influence, 0.0, 1.0);
-    v.g = clamp(harm + shadow_influence, 0.0, 1.0);
-    v.b = clamp(depth + e.lucid_level * 0.3, 0.0, 1.0);
-    v.a = clamp(e.integrity * (1.0 - e.lucid_level * 0.3), 0.0, 1.0);
-    v.size = 1.0 + depth * 2.0 + e.lucid_level * 0.5;
+    
+    // Integrity as the "anchor" — its Bloch value directly affects alpha
+    float integrity_theta = bloch_value_to_theta(e.integrity);
+    float integrity_value = bloch_theta_to_value(integrity_theta);
+    
+    v.r = clamp((red_coherence + 1.0) * 0.5 + dream_influence * 0.3, 0.0, 1.0);
+    v.g = clamp((green_torsion + 1.0) * 0.5 + shadow_influence * 0.3, 0.0, 1.0);
+    v.b = clamp((blue_resonance + 1.0) * 0.5 + e.lucid_level * 0.2, 0.0, 1.0);
+    v.a = clamp(integrity_value * (1.0 - e.lucid_level * 0.3), 0.0, 1.0);
+    v.size = 1.0 + e.pillars[15] * 2.0 + e.lucid_level * 0.5;  // Depth = size
     v.glow = e.lucid_level * 0.5 + e.shadow_emergence * 0.3;
     v.is_dreaming = (e.lucid_level > 0.1) ? 1 : 0;
 

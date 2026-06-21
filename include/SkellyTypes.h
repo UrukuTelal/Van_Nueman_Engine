@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <algorithm>
 #include <vector>
 #include <string>
 #include "Entity.h"
@@ -238,6 +239,8 @@ struct ModularSkeleton {
     std::vector<Organ*> organs;
     
     ModularSkeleton() : root(nullptr) {}
+    ModularSkeleton(const ModularSkeleton&) = delete;
+    ModularSkeleton& operator=(const ModularSkeleton&) = delete;
     
     ~ModularSkeleton() {
         // Delete transport systems (InterstitialFluid instances)

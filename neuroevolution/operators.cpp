@@ -8,8 +8,8 @@
 // From FULL_ARCHITECTURE.md: neuroevolution/operators - Mutation/crossover operators
 
 #ifndef FROM_SCALED
-#define FROM_SCALED(x) (x)
-#define TO_SCALED(x) (x)
+#define FROM_SCALED(x) (static_cast<float>(x))
+#define TO_SCALED(x) (vn::fp20_t(x))
 #endif
 
 struct OperatorBoundary {
@@ -34,12 +34,12 @@ public:
         boundaries.push_back({pillar, min_val, max_val});
     }
 
-    void apply_boundaries(float weights[NUM_PILLARS][NUM_PILLARS]) {
-        for (int i = 0; i < NUM_PILLARS; i++) {
+    void apply_boundaries(float weights[NumPillars][NumPillars]) {
+        for (int i = 0; i < NumPillars; i++) {
             // Check if pillar i has a boundary
             for (const auto& b : boundaries) {
                 if (b.pillar == i) {
-                    for (int j = 0; j < NUM_PILLARS; j++) {
+                    for (int j = 0; j < NumPillars; j++) {
                         weights[i][j] = std::max(b.min_val, std::min(b.max_val, weights[i][j]));
                     }
                     break;
@@ -48,14 +48,14 @@ public:
         }
     }
 
-    void mutate(float weights[NUM_PILLARS][NUM_PILLARS], float mutation_rate = 0.1f) {
+    void mutate(float weights[NumPillars][NumPillars], float mutation_rate = 0.1f) {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_real_distribution<float> dis(-0.5f, 0.5f);
         std::uniform_real_distribution<float> prob(0.0f, 1.0f);
 
-        for (int i = 0; i < NUM_PILLARS; i++) {
-            for (int j = 0; j < NUM_PILLARS; j++) {
+        for (int i = 0; i < NumPillars; i++) {
+            for (int j = 0; j < NumPillars; j++) {
                 if (prob(gen) < mutation_rate) {
                     weights[i][j] += dis(gen);
                 }
@@ -64,18 +64,18 @@ public:
         apply_boundaries(weights);
     }
 
-    void crossover(const float parent1[NUM_PILLARS][NUM_PILLARS],
-                   const float parent2[NUM_PILLARS][NUM_PILLARS],
-                   float child1[NUM_PILLARS][NUM_PILLARS],
-                   float child2[NUM_PILLARS][NUM_PILLARS]) {
+    void crossover(const float parent1[NumPillars][NumPillars],
+                   const float parent2[NumPillars][NumPillars],
+                   float child1[NumPillars][NumPillars],
+                   float child2[NumPillars][NumPillars]) {
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, NUM_PILLARS - 1);
+        std::uniform_int_distribution<> dis(0, NumPillars - 1);
 
         int cp = dis(gen);  // Crossover point
 
-        for (int i = 0; i < NUM_PILLARS; i++) {
-            for (int j = 0; j < NUM_PILLARS; j++) {
+        for (int i = 0; i < NumPillars; i++) {
+            for (int j = 0; j < NumPillars; j++) {
                 if (i < cp) {
                     child1[i][j] = parent1[i][j];
                     child2[i][j] = parent2[i][j];

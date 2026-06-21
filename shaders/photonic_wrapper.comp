@@ -1,0 +1,122 @@
+#version 450
+// photonic_wrapper.comp - GPU Photonic Wrapper compute shader
+// Part of the COSMOS 16D Pillar Cosmology implementation
+// Phase 2: Photonic Wrapper System (RYGCBM + Alpha Core)
+//
+// Processes batches of entity wrappers in parallel on the GPU.
+// Each invocation handles one entity's wrapper enchantment update.
+
+#define NUM_PILLARS 16
+#define PI 3.14159265
+
+// ── Color & Alpha Constants ──────────────────────────────────
+
+#define COLOR_RED      0
+#define COLOR_YELLOW   1
+#define COLOR_GREEN    2
+#define COLOR_CYAN     3
+#define COLOR_BLUE     4
+#define COLOR_MAGENTA  5
+
+#define ALPHA_WHITE    0
+#define ALPHA_BLACK    1
+
+// ── Bloch Helpers ────────────────────────────────────────────
+
+float pw_value_to_theta(float v) {
+    v = clamp(v, 0.0, 1.0);
+    return acos(2.0 * v - 1.0);
+}
+
+float pw_theta_to_value(float t) {
+    t = clamp(t, 0.0, PI);
+    return (cos(t) + 1.0) * 0.5;
+}
+
+float pw_apply_bloch(float value, float delta_theta) {
+    float theta = pw_value_to_theta(value);
+    return pw_theta_to_value(theta + delta_theta);
+}
+
+// ── Wrapper Data (per-entity) ────────────────────────────────
+
+struct WrapperData {
+    int color_0;
+    int color_1;
+    int color_2;
+    int alpha;       // 0 = White, 1 = Black
+    int inward;      // 0 = outward broadcast, 1 = inward enchantment
+    float padding;   // 16-byte alignment
+};
+
+// ── Color → Pillar Mapping ───────────────────────────────────
+// For each color, which pillar indices are affected (max 3).
+// -1 terminated. Stored as flat array.
+
+const int COLOR_PILLAR_MAP[18] = {
+    1,  2,  -1,  // Red:    Willpower, Force
+    0,  8,  -1,  // Yellow: Awareness, Presence
+    5,  6,  -1,  // Green:  Integrity, Cohesion
+    14, -1, -1,  // Cyan:   Flux
+    4,  -1, -1,  // Blue:   Resistance
+    7,  11, -1,  // Magenta: Relation, Attraction
+};
+
+// ── Buffer Layouts ───────────────────────────────────────────
+
+layout(set = 0, binding = 0) readonly buffer WrapperBuffer {
+    WrapperData wrappers[];
+} in_wrappers;
+
+layout(set = 0, binding = 1) buffer EntityBuffer {
+    float pillars[];
+} inout_entities;
+
+layout(set = 0, binding = 2) uniform Params {
+    uint entity_count;
+    float delta_time;
+} params;
+
+// ── Main ─────────────────────────────────────────────────────
+
+void main() {
+    uint id = gl_GlobalInvocationID.x;
+    if (id >= params.entity_count) return;
+
+    WrapperData w = in_wrappers.wrappers[id];
+    if (w.alpha != ALPHA_WHITE && w.alpha != ALPHA_BLACK) return;
+    if (w.inward == 0) return;  // only enchantment (inward) updates on GPU tick
+
+    // Base offset into the flat pillar array (16 floats per entity)
+    uint base = id * NUM_PILLARS;
+
+    float direction = (w.alpha == ALPHA_WHITE) ? 1.0 : -1.0;
+    float rotation_rate = 0.01 * direction * params.delta_time;
+
+    // Apply enchantment for each of the 3 colors
+    int colors[3] = { w.color_0, w.color_1, w.color_2 };
+    for (int ci = 0; ci < 3; ci++) {
+        int c = colors[ci];
+        if (c < 0 || c > 5) continue;
+
+        // Get pillar indices for this color
+        int base_idx = c * 3;
+        for (int pj = 0; pj < 3; pj++) {
+            int p = COLOR_PILLAR_MAP[base_idx + pj];
+            if (p < 0 || p >= NUM_PILLARS) break;
+
+            float current = inout_entities.pillars[base + p];
+            float target_value = (direction > 0) ? 1.0 : 0.0;
+
+            float theta = pw_value_to_theta(current);
+            float target_theta = pw_value_to_theta(target_value);
+            float diff = target_theta - theta;
+            float delta = diff * abs(rotation_rate);
+            if (abs(delta) > 0.0001) {
+                inout_entities.pillars[base + p] = pw_apply_bloch(
+                    current, delta
+                );
+            }
+        }
+    }
+}

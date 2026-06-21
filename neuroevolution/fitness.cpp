@@ -7,7 +7,8 @@
 // From FULL_ARCHITECTURE.md: neuroevolution/fitness - Fitness evaluation
 
 #ifndef FROM_SCALED
-#define FROM_SCALED(x) (x)
+#define FROM_SCALED(x) (static_cast<float>(x))
+#define TO_SCALED(x) (vn::fp20_t(x))
 #endif
 
 struct InteractionOutcome {
@@ -30,12 +31,12 @@ public:
         }
     }
 
-    float evaluate_individual(float weights[NUM_PILLARS][NUM_PILLARS]) {
+    float evaluate_individual(float weights[NumPillars][NumPillars]) {
         if (outcomes.empty()) return 0.0f;
 
         float fitness = 0.0f;
         for (const auto& outcome : outcomes) {
-            float predicted = weights[PILLAR_FORCE][outcome.pillar_affected] * outcome.force_applied;
+            float predicted = weights[Force][outcome.pillar_affected] * outcome.force_applied;
             float error = fabsf(predicted - outcome.outcome_magnitude);
             fitness -= error;
         }
@@ -48,16 +49,16 @@ public:
         if (!server) return 0.0f;
         float fitness = 0.0f;
 
-        float awareness = FROM_SCALED(server->pillars[PILLAR_AWARENESS]);
+        float awareness = FROM_SCALED(server->pillars[Awareness]);
         fitness += awareness * 0.1f;
 
-        float willpower = FROM_SCALED(server->pillars[PILLAR_WILLPOWER]);
+        float willpower = FROM_SCALED(server->pillars[Willpower]);
         fitness += willpower * 0.1f;
 
-        float harm = FROM_SCALED(server->pillars[PILLAR_HARM]);
+        float harm = FROM_SCALED(server->pillars[Harm]);
         fitness -= harm * 0.2f;
 
-        float integrity = FROM_SCALED(server->pillars[PILLAR_INTEGRITY]);
+        float integrity = FROM_SCALED(server->pillars[Integrity]);
         fitness += integrity * 0.1f;
 
         return fitness;

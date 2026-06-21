@@ -12,8 +12,8 @@
   },
   "logic_mechanics": {
     "harm_accumulation": {
-      "formula": "h_new = h_old + max(0, incoming_damage - Resistance - Integrity)",
-      "impact": "Applies state disruption; can force mutation or unit termination."
+      "formula": "Integrity.theta += (Harm.force * operator_magnitude) / (Willpower * Depth); excess_absorbed_by_Depth() → Constraint rises",
+      "impact": "Applies Bloch rotation to Integrity; excess torsion deepens Constraint instead of raw scalar accumulation."
     },
     "moral_objective": {
       "formula": "min(sum(H_sys)) subject to O >= O_min",

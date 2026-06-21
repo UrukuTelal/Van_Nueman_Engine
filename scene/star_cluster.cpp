@@ -1,10 +1,12 @@
 // star_cluster.cpp - Procedural star cluster with emergent lifeforms
 #include "star_cluster.h"
+#include "../scale/SemanticProjection.h"
 #include <cmath>
 #include <algorithm>
 #include <ctime>
 
 using namespace procedural;
+
 
 // Initialize cluster
 StarCluster::StarCluster(uint32_t seed) :
@@ -107,16 +109,16 @@ void StarCluster::generate_planets(Star& star) {
         planet.biomass = 0.0f;
 
         // Initialize pillar state for planetary conditions (will be updated in generate_planet_conditions)
-        planet.pillar_state = create_default_pillar_state(0.3f);
+        planet.pillar_state = create_default_pillar_state(vn::fp20_t(0.3f));
 
         // Generate planetary conditions with RNG
         procedural::generate_planet_conditions(planet, star, rng_);
 
         // Check habitable after conditions are generated
         planet.habitable = procedural::is_in_habitable_zone(planet.orbital_distance, star);
-        planet.pillar_state[PILLAR_WARMTH] = planet.surface_temp > 200.0f && planet.surface_temp < 350.0f ? 0.7f : 0.2f;
-        planet.pillar_state[PILLAR_RESISTANCE] = planet.atmosphere_density > 0.5f ? 0.8f : 0.4f;
-        planet.pillar_state[PILLAR_ATTRACTION] = planet.habitable ? 0.9f : 0.3f;
+        planet.pillar_state[Warmth] = vn::fp20_t(planet.surface_temp > 200.0f && planet.surface_temp < 350.0f ? 0.7f : 0.2f);
+        planet.pillar_state[Resistance] = vn::fp20_t(planet.atmosphere_density > 0.5f ? 0.8f : 0.4f);
+        planet.pillar_state[Attraction] = vn::fp20_t(planet.habitable ? 0.9f : 0.3f);
 
         planets_.push_back(planet);
         star.planet_ids.push_back(planet.id);
@@ -201,22 +203,22 @@ void procedural::randomize_lifeform_pillars(Lifeform& lf, std::mt19937& rng) {
 
     // Start with random-ish state (not hardcoded!)
     // They will LEARN optimal pillar configurations
-    lf.pillars[PILLAR_AWARENESS] = dist(rng);
-    lf.pillars[PILLAR_WILLPOWER] = dist(rng);
-    lf.pillars[PILLAR_FORCE] = dist(rng);
-    lf.pillars[PILLAR_INFLUENCE] = dist(rng);
-    lf.pillars[PILLAR_RESISTANCE] = dist(rng);
-    lf.pillars[PILLAR_INTEGRITY] = dist(rng);
-    lf.pillars[PILLAR_COHESION] = dist(rng);
-    lf.pillars[PILLAR_RELATION] = dist(rng);
-    lf.pillars[PILLAR_PRESENCE] = dist(rng);
-    lf.pillars[PILLAR_WARMTH] = dist(rng);
-    lf.pillars[PILLAR_MEMORY] = dist(rng);
-    lf.pillars[PILLAR_ATTRACTION] = dist(rng);
-    lf.pillars[PILLAR_HARM] = 0.1f;  // Start low harm
-    lf.pillars[PILLAR_DISTORTION] = 0.05f;  // Start low distortion
-    lf.pillars[PILLAR_FLUX] = dist(rng);
-    lf.pillars[PILLAR_DEPTH] = dist(rng);
+    lf.pillars[Awareness] = vn::fp20_t(dist(rng));
+    lf.pillars[Willpower] = vn::fp20_t(dist(rng));
+    lf.pillars[Force] = vn::fp20_t(dist(rng));
+    lf.pillars[Influence] = vn::fp20_t(dist(rng));
+    lf.pillars[Resistance] = vn::fp20_t(dist(rng));
+    lf.pillars[Integrity] = vn::fp20_t(dist(rng));
+    lf.pillars[Cohesion] = vn::fp20_t(dist(rng));
+    lf.pillars[Relation] = vn::fp20_t(dist(rng));
+    lf.pillars[Presence] = vn::fp20_t(dist(rng));
+    lf.pillars[Warmth] = vn::fp20_t(dist(rng));
+    lf.pillars[Memory] = vn::fp20_t(dist(rng));
+    lf.pillars[Attraction] = vn::fp20_t(dist(rng));
+    lf.pillars[Harm] = vn::fp20_t(0.1f);  // Start low harm
+    lf.pillars[Distortion] = vn::fp20_t(0.05f);  // Start low distortion
+    lf.pillars[Flux] = vn::fp20_t(dist(rng));
+    lf.pillars[Depth] = vn::fp20_t(dist(rng));
 }
 
 void StarCluster::tick(float delta_time) {
@@ -258,14 +260,14 @@ void StarCluster::update_lifeform(Lifeform& lf, float delta_time) {
     // 4. Physics interaction (lifeforms learn to use physics)
     apply_physics_to_lifeform(lf, delta_time);
 
-    // 5. Survival check
-    lf.energy -= delta_time * 0.5f;  // Energy cost
+    // 5. Survival check (BiologicalProjection: stress_level → death threat)
+    lf.energy -= delta_time * 0.5f;
     lf.age += delta_time;
     lf.last_interaction.ticks_survived++;
 
-    if (lf.energy <= 0.0f || lf.pillars[PILLAR_HARM] > 0.7f) {
+    BiologicalProjection bp = BiologicalProjection::project(lf.pillars);
+    if (lf.energy <= 0.0f || bp.stress_level > 0.7f) {
         lf.alive = false;
-        // Find planet and decrement count
         for (auto& planet : planets_) {
             if (planet.id == lf.planet_id) {
                 planet.lifeform_count--;
@@ -273,13 +275,11 @@ void StarCluster::update_lifeform(Lifeform& lf, float delta_time) {
             }
         }
     } else {
-        // Survived - small energy bonus
-        lf.fitness += delta_time * (1.0f - lf.pillars[PILLAR_HARM]);
+        lf.fitness += delta_time * (1.0f - bp.stress_level);
     }
 }
 
 void StarCluster::lifeform_perception(Lifeform& lf) {
-    // Get local environmental conditions
     Planet* planet = nullptr;
     for (auto& p : planets_) {
         if (p.id == lf.planet_id) {
@@ -289,72 +289,64 @@ void StarCluster::lifeform_perception(Lifeform& lf) {
     }
     if (!planet) return;
 
-    // Update awareness based on environmental perception
     float env_pressure = procedural::calculate_pressure(lf, *planet);
 
-    // Awareness increases with successful perception
-    lf.pillars[PILLAR_AWARENESS] = std::min(1.0f,
-        lf.pillars[PILLAR_AWARENESS] + 0.001f * (1.0f - lf.pillars[PILLAR_DISTORTION]));
+    // CognitiveProjection: awareness modulated by imaginativeness (distortion)
+    float current_awareness = lf.pillars[Awareness];
+    float current_distortion = lf.pillars[Distortion];
+    lf.pillars[Awareness] = vn::fp20_t(std::min(1.0f,
+        current_awareness + 0.001f * (1.0f - current_distortion)));
 
-    // Store in memory
     lf.last_interaction.pressure_felt = env_pressure;
     lf.last_interaction.temperature = planet->surface_temp;
 }
 
 void StarCluster::lifeform_decision(Lifeform& lf) {
-    // EMERGENT behavior - no hardcoded rules!
-    // Pillar state vector determines behavior through interactions
+    // Decision based on BiologicalProjection and CognitiveProjection
+    BiologicalProjection bp = BiologicalProjection::project(lf.pillars);
 
-    // Decision based on current pillar state and environmental pressure
-    float harm_threshold = 0.7f;
-    float current_harm = lf.pillars[PILLAR_HARM];
-
-    // Emergent: High harm -> increase resistance (learning!)
-    if (current_harm > 0.3f) {
-        lf.pillars[PILLAR_RESISTANCE] = std::min(1.0f, lf.pillars[PILLAR_RESISTANCE] + 0.01f);
-        lf.pillars[PILLAR_WILLPOWER] = std::min(1.0f, lf.pillars[PILLAR_WILLPOWER] + 0.02f);
+    // Emergent: High stress (Harm) -> increase membrane integrity + willpower
+    if (bp.stress_level > 0.3f) {
+        lf.pillars[Resistance] = vn::fp20_t(std::min(1.0f, lf.pillars[Resistance] + 0.01f));
+        lf.pillars[Willpower] = vn::fp20_t(std::min(1.0f, lf.pillars[Willpower] + 0.02f));
     }
 
     // Emergent: Low energy -> seek warmth (survival instinct)
     if (lf.energy < 30.0f) {
-        lf.pillars[PILLAR_ATTRACTION] = std::min(1.0f, lf.pillars[PILLAR_ATTRACTION] + 0.05f);
-        lf.pillars[PILLAR_WARMTH] = std::min(1.0f, lf.pillars[PILLAR_WARMTH] + 0.03f);
+        lf.pillars[Attraction] = vn::fp20_t(std::min(1.0f, lf.pillars[Attraction] + 0.05f));
+        lf.pillars[Warmth] = vn::fp20_t(std::min(1.0f, lf.pillars[Warmth] + 0.03f));
     }
 
-    // Emergent: Use Force to manipulate environment (physics learning!)
-    if (lf.pillars[PILLAR_FORCE] > 0.5f && lf.energy > 20.0f) {
-        // Apply force to physics system (will learn what works)
+    // Emergent: High force_output -> manipulate environment
+    if (bp.force_output > 0.5f && lf.energy > 20.0f) {
         float force[3] = {
-            (lf.pillars[PILLAR_FORCE] - 0.5f) * 2.0f,
+            (bp.force_output - 0.5f) * 2.0f,
             0.0f,
-            (lf.pillars[PILLAR_FORCE] - 0.5f) * 2.0f
+            (bp.force_output - 0.5f) * 2.0f
         };
         lifeform_manipulate_physics(lf, force);
     }
 }
 
 void StarCluster::lifeform_act(Lifeform& lf, float delta_time) {
-    // Apply force based on willpower and attraction
-    float move_force = lf.pillars[PILLAR_WILLPOWER] * lf.pillars[PILLAR_ATTRACTION];
+    BiologicalProjection bp = BiologicalProjection::project(lf.pillars);
 
-    // Movement (simplified)
+    // willpower_stamina * resource_affinity → movement drive
+    float move_force = bp.willpower_stamina * bp.resource_affinity;
+
     lf.x += move_force * delta_time * 10.0f;
     lf.y += 0.0f;
     lf.z += move_force * delta_time * 10.0f;
 
-    // Energy cost for movement
     lf.energy -= move_force * delta_time * 2.0f;
 
-    // Gain energy from successful actions (warmth, resources)
-    if (lf.pillars[PILLAR_WARMTH] > 0.6f) {
-        lf.energy += delta_time * 5.0f;  // Warmth provides energy
+    // metabolic_rate (Warmth) → energy from environment
+    if (bp.metabolic_rate > 0.6f) {
+        lf.energy += delta_time * 5.0f;
     }
 }
 
 void StarCluster::apply_physics_to_lifeform(Lifeform& lf, float delta_time) {
-    // Lifeforms interact with the physics system
-    // They LEARN to use the physics of the entire system to survive
-
     Planet* planet = nullptr;
     for (auto& p : planets_) {
         if (p.id == lf.planet_id) {
@@ -364,52 +356,47 @@ void StarCluster::apply_physics_to_lifeform(Lifeform& lf, float delta_time) {
     }
     if (!planet) return;
 
-    // Physics interaction based on pillar state
+    BiologicalProjection bp = BiologicalProjection::project(lf.pillars);
     float gravity = planet->gravity;
 
-    // If high Force pillar, lifeform tries to overcome gravity (physics manipulation!)
-    if (lf.pillars[PILLAR_FORCE] > 0.7f) {
-        // Apply upward force against gravity
+    // High force_output → overcome gravity
+    if (bp.force_output > 0.7f) {
         lf.energy -= gravity * delta_time * 0.1f;
-
-        // Learning: If this works (energy preserved), reinforce Force
         if (lf.energy > 50.0f) {
-            lf.pillars[PILLAR_FORCE] = std::min(1.0f, lf.pillars[PILLAR_FORCE] + 0.01f);
+            lf.pillars[Force] = vn::fp20_t(std::min(1.0f, lf.pillars[Force] + 0.01f));
         }
     }
 
-    // Flux pillar: controls transfer rate of energy/nutrients
-    if (lf.pillars[PILLAR_FLUX] > 0.5f && planet->water_coverage > 0.5f) {
-        // Efficient energy transfer from environment
-        lf.energy += lf.pillars[PILLAR_FLUX] * delta_time * 3.0f;
+    // flux_metabolism (Flux) → energy transfer efficiency
+    if (bp.flux_metabolism > 0.5f && planet->water_coverage > 0.5f) {
+        lf.energy += bp.flux_metabolism * delta_time * 3.0f;
     }
 
-    // Depth pillar: latent capacity for survival
-    if (lf.pillars[PILLAR_DEPTH] > 0.6f && lf.energy < 30.0f) {
-        // Tap into reserves
-        lf.energy += lf.pillars[PILLAR_DEPTH] * delta_time * 5.0f;
-        lf.pillars[PILLAR_DEPTH] *= 0.99f;  // Consumption
+    // depth_reservoir (Depth) → tap survival reserves
+    if (bp.depth_reservoir > 0.6f && lf.energy < 30.0f) {
+        lf.energy += bp.depth_reservoir * delta_time * 5.0f;
+        lf.pillars[Depth] = vn::fp20_t(lf.pillars[Depth] * 0.99f);
     }
 }
 
 void StarCluster::lifeform_manipulate_physics(Lifeform& lf, const float force[3]) {
-    // Record the force applied
     lf.last_interaction.force_applied[0] = force[0];
     lf.last_interaction.force_applied[1] = force[1];
     lf.last_interaction.force_applied[2] = force[2];
 
-    // Energy cost for physics manipulation
     float force_magnitude = std::sqrt(force[0]*force[0] + force[1]*force[1] + force[2]*force[2]);
     lf.energy -= force_magnitude * 0.5f;
 
-    // Learning: Did this help or hurt?
+    // CognitiveProjection: successful manipulation reinforces experiential_memory
+    CognitiveProjection cp = CognitiveProjection::project(lf.pillars);
     if (lf.energy > 0.0f) {
-        // Successful manipulation - reinforce
-        lf.pillars[PILLAR_MEMORY] = std::min(1.0f, lf.pillars[PILLAR_MEMORY] + 0.02f);
+        lf.pillars[Memory] = vn::fp20_t(
+            std::min(1.0f, lf.pillars[Memory] + 0.02f));
     } else {
-        // Failed - reduce force next time
-        lf.pillars[PILLAR_FORCE] = std::max(0.1f, lf.pillars[PILLAR_FORCE] - 0.05f);
+        lf.pillars[Force] = vn::fp20_t(
+            std::max(0.1f, lf.pillars[Force] - 0.05f));
     }
+    (void)cp;
 }
 
 float procedural::calculate_pressure(const Lifeform& lf, const Planet& planet) {
@@ -452,7 +439,7 @@ void StarCluster::evolve_lifeforms() {
         offspring.energy = 100.0f;
 
         // Crossover: mix pillars from both parents
-        for (int j = 0; j < NUM_PILLARS; j++) {
+        for (int j = 0; j < NumPillars; j++) {
             if (rand() % 2 == 0) {
                 offspring.pillars[j] = parent2->pillars[j];
             }
@@ -460,9 +447,9 @@ void StarCluster::evolve_lifeforms() {
 
         // Mutation: random changes (LEARNING!)
         std::uniform_real_distribution<float> dist(-0.1f, 0.1f);
-        for (int j = 0; j < NUM_PILLARS; j++) {
-            offspring.pillars[j] += dist(rng_);
-            offspring.pillars[j] = std::max(0.0f, std::min(1.0f, offspring.pillars[j]));
+        for (int j = 0; j < NumPillars; j++) {
+            offspring.pillars[j] = vn::fp20_t(offspring.pillars[j] + dist(rng_));
+            offspring.pillars[j] = vn::fp20_t(std::max(0.0f, std::min(1.0f, offspring.pillars[j])));
         }
 
         lifeforms_.push_back(offspring);

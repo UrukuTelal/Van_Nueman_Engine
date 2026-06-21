@@ -8,10 +8,7 @@
 #include <cstddef>
 #include <vector>
 #include <cstring>
-
-#ifndef NUM_PILLARS
-#define NUM_PILLARS 16
-#endif
+#include <PillarEnum.h>
 
 // Simulation result
 struct SimulationResult {
@@ -23,9 +20,9 @@ struct SimulationResult {
     bool deployment_ready;
     
     // Pillar performance during simulation
-    float pillar_avg[NUM_PILLARS];
-    float pillar_min[NUM_PILLARS];
-    float pillar_max[NUM_PILLARS];
+    float pillar_avg[NumPillars];
+    float pillar_min[NumPillars];
+    float pillar_max[NumPillars];
     
     char notes[256];            // Performance notes
 };
@@ -34,7 +31,7 @@ struct SimulationResult {
 struct CreatureTemplate {
     uint32_t genome_id;           // From CRISPR Vault
     char name[128];
-    float pillar_template[NUM_PILLARS];
+    float pillar_template[NumPillars];
     
     // Physical specs
     float body_size;
@@ -91,7 +88,7 @@ private:
         uint32_t id;
         uint32_t genome_id;
         char name[128];
-        float pillars[NUM_PILLARS];
+        float pillars[NumPillars];
         float body_size;
         float metabolism;
         float adaptation;
@@ -114,5 +111,5 @@ private:
     void simulate_tick(ActiveSimulation& sim, float delta_time);
     
     // Calculate fitness from pillar performance
-    float calculate_fitness(const float pillar_avg[NUM_PILLARS]) const;
+    float calculate_fitness(const float pillar_avg[NumPillars]) const;
 };

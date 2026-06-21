@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstring>
 #include <fstream>
+#include "../fll/include/FLLShaders.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -64,6 +65,12 @@ bool VulkanRenderer::init(uint32_t w, uint32_t h, const char* title) {
     if (!createSwapchain()) return false;
     if (!createRenderPass()) return false;
     if (!createComputePipeline()) return false;
+    if (!createFLLPipeline()) {
+        std::cerr << "Warning: FLL pipeline creation failed (non-fatal)" << std::endl;
+    }
+    if (!createSkellyPipeline()) {
+        std::cerr << "Warning: Skelly pipeline creation failed (non-fatal)" << std::endl;
+    }
     if (!createOutputImage()) return false;
     if (!createDescriptorPoolAndSets()) return false;
     if (!createGraphicsPipeline()) return false;
@@ -227,16 +234,14 @@ bool VulkanRenderer::createComputePipeline() {
     VK_CHECK(vkCreateShaderModule(device, &smci, nullptr, &shaderModule));
     std::cerr << "Shader module created" << std::endl;
 
-    VkDescriptorSetLayoutBinding bindings[6] = {};
+    VkDescriptorSetLayoutBinding bindings[4] = {};
     bindings[0] = {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
     bindings[1] = {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
     bindings[2] = {2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT};
     bindings[3] = {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
-    bindings[4] = {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
-    bindings[5] = {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
 
     VkDescriptorSetLayoutCreateInfo dslci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    dslci.bindingCount = 6; dslci.pBindings = bindings;
+    dslci.bindingCount = 4; dslci.pBindings = bindings;
     VK_CHECK(vkCreateDescriptorSetLayout(device, &dslci, nullptr, &descriptorSetLayout));
     std::cerr << "Compute descriptor set layout created" << std::endl;
 
@@ -256,6 +261,193 @@ bool VulkanRenderer::createComputePipeline() {
     vkDestroyShaderModule(device, shaderModule, nullptr);
     std::cerr << "Compute pipeline created" << std::endl;
     return true;
+}
+
+bool VulkanRenderer::createFLLPipeline() {
+    // Load FLL glyph compute shader
+    std::vector<std::string> paths = {
+        "fll_glyph.comp.spv",
+        "../fll/shaders/fll_glyph.comp.spv",
+        "fll/shaders/fll_glyph.comp.spv"
+    };
+    std::vector<uint32_t> spirv;
+    for (auto& path : paths) {
+        spirv = readSPIRV(path.c_str());
+        if (!spirv.empty()) { std::cerr << "Loaded FLL shader: " << path << std::endl; break; }
+    }
+    if (spirv.empty()) { std::cerr << "Failed to load fll_glyph.comp.spv" << std::endl; return false; }
+
+    VkShaderModuleCreateInfo smci = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+    smci.codeSize = spirv.size() * 4; smci.pCode = spirv.data();
+    VkShaderModule shaderModule;
+    VK_CHECK(vkCreateShaderModule(device, &smci, nullptr, &shaderModule));
+    std::cerr << "FLL shader module created" << std::endl;
+
+    // ── Descriptor set layout: binding 0 = node buffer, binding 2 = output image ──
+    VkDescriptorSetLayoutBinding bindings[2] = {};
+    bindings[0] = {vn::fll::FLL_BIND_NODE_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+                   VK_SHADER_STAGE_COMPUTE_BIT};
+    bindings[1] = {vn::fll::FLL_BIND_OUTPUT_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1,
+                   VK_SHADER_STAGE_COMPUTE_BIT};
+
+    VkDescriptorSetLayoutCreateInfo dslci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    dslci.bindingCount = 2; dslci.pBindings = bindings;
+    VK_CHECK(vkCreateDescriptorSetLayout(device, &dslci, nullptr, &fllDescriptorSetLayout));
+    std::cerr << "FLL descriptor set layout created" << std::endl;
+
+    // ── Push constant range (64 bytes for FLLPushConstants) ──
+    VkPushConstantRange pushRange = {};
+    pushRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    pushRange.offset = 0;
+    pushRange.size = sizeof(vn::fll::FLLPushConstants);
+
+    // ── Pipeline layout ──
+    VkPipelineLayoutCreateInfo plci = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    plci.setLayoutCount = 1; plci.pSetLayouts = &fllDescriptorSetLayout;
+    plci.pushConstantRangeCount = 1; plci.pPushConstantRanges = &pushRange;
+    VK_CHECK(vkCreatePipelineLayout(device, &plci, nullptr, &fllPipelineLayout));
+    std::cerr << "FLL pipeline layout created" << std::endl;
+
+    // ── Compute pipeline ──
+    VkPipelineShaderStageCreateInfo ssci = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    ssci.stage = VK_SHADER_STAGE_COMPUTE_BIT; ssci.module = shaderModule; ssci.pName = "main";
+
+    VkComputePipelineCreateInfo cpci = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
+    cpci.stage = ssci; cpci.layout = fllPipelineLayout;
+    VkResult r = vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &cpci, nullptr, &fllComputePipeline);
+    std::cerr << "FLL compute pipeline result: " << r << std::endl;
+    if (r) return false;
+
+    vkDestroyShaderModule(device, shaderModule, nullptr);
+    std::cerr << "FLL compute pipeline created" << std::endl;
+
+    // ── Allocate FLL descriptor set ──
+    VkDescriptorSetAllocateInfo dsai = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    dsai.descriptorPool = descriptorPool;
+    dsai.descriptorSetCount = 1; dsai.pSetLayouts = &fllDescriptorSetLayout;
+    VK_CHECK(vkAllocateDescriptorSets(device, &dsai, &fllDescriptorSet));
+    std::cerr << "FLL descriptor set allocated" << std::endl;
+
+    return true;
+}
+
+bool VulkanRenderer::createSkellyPipeline() {
+    std::vector<std::string> paths = {
+        "kernels/render_skelly_sdf.spv",
+        "../kernels/render_skelly_sdf.spv",
+        "render_skelly_sdf.spv"
+    };
+    std::vector<uint32_t> spirv;
+    for (auto& path : paths) {
+        spirv = readSPIRV(path.c_str());
+        if (!spirv.empty()) { std::cerr << "Loaded Skelly shader: " << path << std::endl; break; }
+    }
+    if (spirv.empty()) { std::cerr << "Failed to load render_skelly_sdf.spv" << std::endl; return false; }
+
+    VkShaderModuleCreateInfo smci = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+    smci.codeSize = spirv.size() * 4; smci.pCode = spirv.data();
+    VkShaderModule shaderModule;
+    VK_CHECK(vkCreateShaderModule(device, &smci, nullptr, &shaderModule));
+
+    VkDescriptorSetLayoutBinding sbindings[5] = {};
+    sbindings[0] = {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
+    sbindings[1] = {2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT};
+    sbindings[2] = {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
+    sbindings[3] = {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
+    sbindings[4] = {6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT};
+
+    VkDescriptorSetLayoutCreateInfo dslci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    dslci.bindingCount = 5; dslci.pBindings = sbindings;
+    VK_CHECK(vkCreateDescriptorSetLayout(device, &dslci, nullptr, &skellyDescriptorSetLayout));
+
+    VkPushConstantRange pcr = {VK_SHADER_STAGE_COMPUTE_BIT, 0, 3 * sizeof(uint32_t)};
+
+    VkPipelineLayoutCreateInfo plci = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    plci.setLayoutCount = 1; plci.pSetLayouts = &skellyDescriptorSetLayout;
+    plci.pushConstantRangeCount = 1; plci.pPushConstantRanges = &pcr;
+    VK_CHECK(vkCreatePipelineLayout(device, &plci, nullptr, &skellyPipelineLayout));
+
+    VkPipelineShaderStageCreateInfo ssci = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    ssci.stage = VK_SHADER_STAGE_COMPUTE_BIT; ssci.module = shaderModule; ssci.pName = "main";
+
+    VkComputePipelineCreateInfo cpci = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
+    cpci.stage = ssci; cpci.layout = skellyPipelineLayout;
+    VkResult r = vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &cpci, nullptr, &skellyPipeline);
+    if (r) { vkDestroyShaderModule(device, shaderModule, nullptr); return false; }
+    vkDestroyShaderModule(device, shaderModule, nullptr);
+    std::cerr << "Skelly compute pipeline created" << std::endl;
+    return true;
+}
+
+bool VulkanRenderer::uploadFLLNodes(const void* node_data, uint32_t node_count, size_t node_stride) {
+    // Resize buffer if needed (stride = 96 bytes per FractalNodeGPU)
+    size_t required = node_count * node_stride;
+    if (!fllNodeBuffer || node_count > fllNodeCapacity) {
+        if (fllNodeBuffer) {
+            vkDestroyBuffer(device, fllNodeBuffer, nullptr);
+            vkFreeMemory(device, fllNodeBufferMemory, nullptr);
+        }
+        fllNodeCapacity = node_count + 1024;  // overallocate
+
+        VkBufferCreateInfo bci = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        bci.size = fllNodeCapacity * node_stride;
+        bci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        VK_CHECK(vkCreateBuffer(device, &bci, nullptr, &fllNodeBuffer));
+
+        VkMemoryRequirements mr;
+        vkGetBufferMemoryRequirements(device, fllNodeBuffer, &mr);
+        VkPhysicalDeviceMemoryProperties memProps;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
+        uint32_t memTypeIndex = 0;
+        for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
+            if (mr.memoryTypeBits & (1 << i) &&
+                (memProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
+                memTypeIndex = i; break;
+            }
+        }
+        VkMemoryAllocateInfo mai = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+        mai.allocationSize = mr.size; mai.memoryTypeIndex = memTypeIndex;
+        VK_CHECK(vkAllocateMemory(device, &mai, nullptr, &fllNodeBufferMemory));
+        vkBindBufferMemory(device, fllNodeBuffer, fllNodeBufferMemory, 0);
+    }
+
+    // Upload node data
+    void* data;
+    VK_CHECK(vkMapMemory(device, fllNodeBufferMemory, 0, required, 0, &data));
+    memcpy(data, node_data, required);
+    vkUnmapMemory(device, fllNodeBufferMemory);
+
+    // Update descriptor set
+    VkDescriptorBufferInfo nodeInfo = {fllNodeBuffer, 0, required};
+    VkWriteDescriptorSet wds = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    wds.dstSet = fllDescriptorSet;
+    wds.dstBinding = vn::fll::FLL_BIND_NODE_BUFFER;
+    wds.descriptorCount = 1;
+    wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    wds.pBufferInfo = &nodeInfo;
+    vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+
+    // Wire the output image into the FLL descriptor set (binding 2)
+    VkDescriptorImageInfo imageInfo = {VK_NULL_HANDLE, outputImageView, VK_IMAGE_LAYOUT_GENERAL};
+    wds.dstBinding = vn::fll::FLL_BIND_OUTPUT_IMAGE;
+    wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    wds.pBufferInfo = nullptr;
+    wds.pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+
+    return true;
+}
+
+void VulkanRenderer::dispatchFLL(VkCommandBuffer cmd, const vn::fll::FLLPushConstants& pc) {
+    if (!fllComputePipeline) return;
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, fllComputePipeline);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            fllPipelineLayout, 0, 1, &fllDescriptorSet, 0, nullptr);
+    vkCmdPushConstants(cmd, fllPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT,
+                       0, sizeof(vn::fll::FLLPushConstants), &pc);
+    vkCmdDispatch(cmd, (width + 7) / 8, (height + 7) / 8, 1);
 }
 
 bool VulkanRenderer::createOutputImage() {
@@ -307,15 +499,23 @@ bool VulkanRenderer::createOutputImage() {
 
 bool VulkanRenderer::createDescriptorPoolAndSets() {
     VkDescriptorPoolSize ps[4] = {
-        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2},
-        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 9},
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}
     };
+    VkDescriptorPoolSize fll_ps[2] = {
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}
+    };
+    VkDescriptorPoolSize all_ps[6];
+    memcpy(all_ps, ps, sizeof(ps));
+    memcpy(all_ps + 4, fll_ps, sizeof(fll_ps));
+
     VkDescriptorPoolCreateInfo dpci = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    dpci.maxSets = 2; dpci.poolSizeCount = 4; dpci.pPoolSizes = ps;
+    dpci.maxSets = 4; dpci.poolSizeCount = 6; dpci.pPoolSizes = all_ps;
     VK_CHECK(vkCreateDescriptorPool(device, &dpci, nullptr, &descriptorPool));
-    std::cerr << "Descriptor pool created" << std::endl;
+    std::cerr << "Descriptor pool created (maxSets=4)" << std::endl;
 
     // Allocate compute descriptor set
     VkDescriptorSetAllocateInfo dsai = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
@@ -341,7 +541,6 @@ bool VulkanRenderer::createDescriptorPoolAndSets() {
 
     vkUpdateDescriptorSets(device, 2, writes, 0, nullptr);
     std::cerr << "Compute descriptor sets updated (camera + output image only)" << std::endl;
-    std::cerr << "Skelly buffers will be updated when uploaded" << std::endl;
 
     // Create graphics descriptor set layout (must match fragment shader binding 2)
     VkDescriptorSetLayoutBinding gBinding = {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT};
@@ -358,11 +557,33 @@ bool VulkanRenderer::createDescriptorPoolAndSets() {
     // Update graphics descriptor set with output image sampler
     VkDescriptorImageInfo outputInfo = {outputSampler, outputImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     VkWriteDescriptorSet gWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    gWrite.dstSet = graphicsDescriptorSet; gWrite.dstBinding = 2;  // Match compute shader binding 2
+    gWrite.dstSet = graphicsDescriptorSet; gWrite.dstBinding = 2;  // Match fragment shader display.frag binding 2
     gWrite.descriptorCount = 1; gWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     gWrite.pImageInfo = &outputInfo;
     vkUpdateDescriptorSets(device, 1, &gWrite, 0, nullptr);
     std::cerr << "Graphics descriptor set updated (binding 2)" << std::endl;
+
+    // Allocate Skelly descriptor set (pipeline may not exist; skip gracefully)
+    if (skellyDescriptorSetLayout) {
+        dsai.pSetLayouts = &skellyDescriptorSetLayout;
+        VK_CHECK(vkAllocateDescriptorSets(device, &dsai, &skellyDescriptorSet));
+        std::cerr << "Skelly descriptor set allocated" << std::endl;
+
+        // Write shared bindings 0 (camera UBO) and 2 (output image)
+        VkDescriptorBufferInfo skellyCameraInfo = {cameraBuffer, 0, sizeof(CameraUBO)};
+        VkDescriptorImageInfo skellyImageInfo = {VK_NULL_HANDLE, outputImageView, VK_IMAGE_LAYOUT_GENERAL};
+        VkWriteDescriptorSet swrites[2] = {};
+        swrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        swrites[0].dstSet = skellyDescriptorSet; swrites[0].dstBinding = 0;
+        swrites[0].descriptorCount = 1; swrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        swrites[0].pBufferInfo = &skellyCameraInfo;
+        swrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        swrites[1].dstSet = skellyDescriptorSet; swrites[1].dstBinding = 2;
+        swrites[1].descriptorCount = 1; swrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        swrites[1].pImageInfo = &skellyImageInfo;
+        vkUpdateDescriptorSets(device, 2, swrites, 0, nullptr);
+        std::cerr << "Skelly descriptor set updated (camera + output image)" << std::endl;
+    }
 
     return true;
 }
@@ -593,7 +814,7 @@ bool VulkanRenderer::uploadBones(BoneGPU* bones, uint32_t count) {
     uint32_t memTypeIndex = 0;
     for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
         if (mr.memoryTypeBits & (1 << i)) {
-            if (memProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+            if (memProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
                 memTypeIndex = i; break;
             }
         }
@@ -608,13 +829,14 @@ bool VulkanRenderer::uploadBones(BoneGPU* bones, uint32_t count) {
     memcpy(data, bones, bci.size);
     vkUnmapMemory(device, boneBufferMemory);
 
-    // Update descriptor set with new buffer
-    VkDescriptorBufferInfo boneInfo = {boneBuffer, 0, sizeof(BoneGPU) * boneCount};
-    VkWriteDescriptorSet wds = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    wds.dstSet = descriptorSet; wds.dstBinding = 3;
-    wds.descriptorCount = 1; wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    wds.pBufferInfo = &boneInfo;
-    vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+    if (skellyDescriptorSet) {
+        VkDescriptorBufferInfo boneInfo = {boneBuffer, 0, sizeof(BoneGPU) * boneCount};
+        VkWriteDescriptorSet wds = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        wds.dstSet = skellyDescriptorSet; wds.dstBinding = 6;
+        wds.descriptorCount = 1; wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        wds.pBufferInfo = &boneInfo;
+        vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+    }
 
     std::cerr << "uploadBones: done (" << count << " bones)" << std::endl;
     return true;
@@ -645,7 +867,7 @@ bool VulkanRenderer::uploadMuscles(MuscleGPU* muscles, uint32_t count) {
     uint32_t memTypeIndex = 0;
     for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
         if (mr.memoryTypeBits & (1 << i)) {
-            if (memProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+            if (memProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
                 memTypeIndex = i; break;
             }
         }
@@ -660,13 +882,14 @@ bool VulkanRenderer::uploadMuscles(MuscleGPU* muscles, uint32_t count) {
     memcpy(data, muscles, bci.size);
     vkUnmapMemory(device, muscleBufferMemory);
 
-    // Update descriptor set with new buffer
-    VkDescriptorBufferInfo muscleInfo = {muscleBuffer, 0, sizeof(MuscleGPU) * muscleCount};
-    VkWriteDescriptorSet wds = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    wds.dstSet = descriptorSet; wds.dstBinding = 4;
-    wds.descriptorCount = 1; wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    wds.pBufferInfo = &muscleInfo;
-    vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+    if (skellyDescriptorSet) {
+        VkDescriptorBufferInfo muscleInfo = {muscleBuffer, 0, sizeof(MuscleGPU) * muscleCount};
+        VkWriteDescriptorSet wds = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        wds.dstSet = skellyDescriptorSet; wds.dstBinding = 4;
+        wds.descriptorCount = 1; wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        wds.pBufferInfo = &muscleInfo;
+        vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+    }
 
     std::cerr << "uploadMuscles: done (" << count << " muscles)" << std::endl;
     return true;
@@ -690,7 +913,7 @@ bool VulkanRenderer::uploadOrgans(OrganGPU* organs, uint32_t count) {
     uint32_t memTypeIndex = 0;
     for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
         if (mr.memoryTypeBits & (1 << i)) {
-            if (memProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+            if (memProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
                 memTypeIndex = i; break;
             }
         }
@@ -706,18 +929,21 @@ bool VulkanRenderer::uploadOrgans(OrganGPU* organs, uint32_t count) {
     vkUnmapMemory(device, organBufferMemory);
 
     // Update descriptor set with new buffer
-    VkDescriptorBufferInfo organInfo = {organBuffer, 0, sizeof(OrganGPU) * organCount};
-    VkWriteDescriptorSet wds = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    wds.dstSet = descriptorSet; wds.dstBinding = 5;
-    wds.descriptorCount = 1; wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    wds.pBufferInfo = &organInfo;
-    vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+    if (skellyDescriptorSet) {
+        VkDescriptorBufferInfo organInfo = {organBuffer, 0, sizeof(OrganGPU) * organCount};
+        VkWriteDescriptorSet wds = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        wds.dstSet = skellyDescriptorSet; wds.dstBinding = 5;
+        wds.descriptorCount = 1; wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        wds.pBufferInfo = &organInfo;
+        vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+    }
 
     std::cerr << "uploadOrgans: done (" << count << " organs)" << std::endl;
     return true;
 }
 
-bool VulkanRenderer::uploadAgents(const float* positions, const float* colors, uint32_t count) {
+bool VulkanRenderer::uploadAgents(const float* positions, const float* colors, uint32_t count,
+                                  const float* sizes, const float* alphas) {
     uint32_t stride = 8 * sizeof(float);
     uint32_t total_size = sizeof(uint32_t) + count * stride;
     uint32_t needed_capacity = count + 1;
@@ -770,11 +996,11 @@ bool VulkanRenderer::uploadAgents(const float* positions, const float* colors, u
         agents[i * 8 + 0] = positions[i * 3 + 0];
         agents[i * 8 + 1] = positions[i * 3 + 1];
         agents[i * 8 + 2] = positions[i * 3 + 2];
-        agents[i * 8 + 3] = 0.3f;
+        agents[i * 8 + 3] = sizes ? sizes[i] : 0.3f;
         agents[i * 8 + 4] = colors[i * 3 + 0];
         agents[i * 8 + 5] = colors[i * 3 + 1];
         agents[i * 8 + 6] = colors[i * 3 + 2];
-        agents[i * 8 + 7] = 1.0f;
+        agents[i * 8 + 7] = alphas ? alphas[i] : 1.0f;
     }
     vkUnmapMemory(device, agentBufferMemory);
     return true;
@@ -799,8 +1025,15 @@ bool VulkanRenderer::render() {
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
+    VkResult acquireResult = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
                              VK_NULL_HANDLE, &imageIndex);
+    if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR || acquireResult == VK_SUBOPTIMAL_KHR) {
+        vkDeviceWaitIdle(device);
+        cleanupSwapchain();
+        createSwapchain();
+        createFramebuffers();
+        return false;
+    }
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
 
@@ -819,11 +1052,33 @@ bool VulkanRenderer::render() {
     vkCmdPipelineBarrier(commandBuffers[currentFrame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imb);
 
-    // Dispatch compute (SDF raymarching)
+    // Dispatch main compute (SDF agent raymarching)
     vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline);
     vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE,
                             computePipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
     vkCmdDispatch(commandBuffers[currentFrame], (width + 7) / 8, (height + 7) / 8, 1);
+
+    // Dispatch Skelly SDF compute (overlays bones/muscles/organs)
+    if (skellyPipeline && skellyDescriptorSet) {
+        SkellyPushConstants spc = {boneCount, muscleCount, organCount};
+        vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, skellyPipeline);
+        vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE,
+                                skellyPipelineLayout, 0, 1, &skellyDescriptorSet, 0, nullptr);
+        vkCmdPushConstants(commandBuffers[currentFrame], skellyPipelineLayout,
+                           VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SkellyPushConstants), &spc);
+        vkCmdDispatch(commandBuffers[currentFrame], (width + 7) / 8, (height + 7) / 8, 1);
+    }
+
+    // Dispatch FLL glyph compute shader (overlays fractal glyphs)
+    if (fllComputePipeline && hasFLLPushConstants_) {
+        vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, fllComputePipeline);
+        vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE,
+                                fllPipelineLayout, 0, 1, &fllDescriptorSet, 0, nullptr);
+        vkCmdPushConstants(commandBuffers[currentFrame], fllPipelineLayout,
+                           VK_SHADER_STAGE_COMPUTE_BIT,
+                           0, sizeof(vn::fll::FLLPushConstants), &fllPushConstants_);
+        vkCmdDispatch(commandBuffers[currentFrame], (width + 7) / 8, (height + 7) / 8, 1);
+    }
 
     // Transition output for sampling
     imb.oldLayout = VK_IMAGE_LAYOUT_GENERAL; imb.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -916,9 +1171,17 @@ void VulkanRenderer::cleanup() {
     if (outputImageMemory) vkFreeMemory(device, outputImageMemory, nullptr);
     if (outputImageView) vkDestroyImageView(device, outputImageView, nullptr);
     if (outputSampler) vkDestroySampler(device, outputSampler, nullptr);
+    if (fllNodeBuffer) vkDestroyBuffer(device, fllNodeBuffer, nullptr);
+    if (fllNodeBufferMemory) vkFreeMemory(device, fllNodeBufferMemory, nullptr);
+    if (fllComputePipeline) vkDestroyPipeline(device, fllComputePipeline, nullptr);
+    if (fllPipelineLayout) vkDestroyPipelineLayout(device, fllPipelineLayout, nullptr);
+    if (fllDescriptorSetLayout) vkDestroyDescriptorSetLayout(device, fllDescriptorSetLayout, nullptr);
     if (descriptorPool) vkDestroyDescriptorPool(device, descriptorPool, nullptr);
     if (computePipeline) vkDestroyPipeline(device, computePipeline, nullptr);
     if (computePipelineLayout) vkDestroyPipelineLayout(device, computePipelineLayout, nullptr);
+    if (skellyDescriptorSetLayout) vkDestroyDescriptorSetLayout(device, skellyDescriptorSetLayout, nullptr);
+    if (skellyPipelineLayout) vkDestroyPipelineLayout(device, skellyPipelineLayout, nullptr);
+    if (skellyPipeline) vkDestroyPipeline(device, skellyPipeline, nullptr);
     if (descriptorSetLayout) vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
     if (dsLayoutGraphics) vkDestroyDescriptorSetLayout(device, dsLayoutGraphics, nullptr);
     if (commandPool) vkDestroyCommandPool(device, commandPool, nullptr);

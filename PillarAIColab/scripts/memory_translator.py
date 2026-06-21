@@ -3,13 +3,17 @@
 Memory Translator: Project Memory → WHT Signals → Storage
 Converts text-based project memory (blackboard, RAG store) into Walsh-Hadamard Transform signals,
 applies threshold filtering based on pillar values, and stores the results.
+
+Supports fp20_t (20-bit fixed-point) WHT encoding/decoding for deterministic
+agent communication compatible with the C++ vn::fp20_t type.
 """
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Union
 import json
 from datetime import datetime, timezone
 import re
+import struct
 
 class MemoryTranslator:
     """Translate project memory to WHT signals with threshold filtering."""
@@ -228,6 +232,92 @@ class MemoryTranslator:
             metadata = json.load(f)
         
         return signal, metadata
+    
+    # ── fp20 Fixed-Point WHT Encoding/Decoding ────────────────────────
+    # These methods provide compatibility with the C++ vn::fp20_t type
+    # (ScaledInt<int64_t, 20>) for deterministic agent communication.
+    
+    FP20_SCALE = 1 << 20  # 2^20 = 1048576
+    FP20_MAX = (1 << 43) - 1  # max int64_t that fits in fp20 precision space
+    
+    @staticmethod
+    def float_to_fp20(value: float) -> int:
+        """Convert float to fp20_t raw int (20-bit fractional precision).
+        
+        Matches vn::ScaledInt<int64_t, 20> encoding:
+            raw = round(value * 2^20)
+        """
+        raw = int(round(value * MemoryTranslator.FP20_SCALE))
+        # Clamp to int64_t range
+        return max(-(1 << 63), min((1 << 63) - 1, raw))
+    
+    @staticmethod
+    def fp20_to_float(raw: int) -> float:
+        """Convert fp20_t raw int back to float.
+        
+        Matches vn::ScaledInt::to_float():
+            float = raw / 2^20
+        """
+        return raw / MemoryTranslator.FP20_SCALE
+    
+    def encode_pillars_to_fp20_signal(self, pillar_values: np.ndarray) -> np.ndarray:
+        """Encode 16 pillar state values to fp20-precision WHT signal.
+        
+        Args:
+            pillar_values: 16-element float array of pillar states (range [0, 1])
+        
+        Returns:
+            32-element float array (fp20 quantized, then WHT transformed)
+        """
+        assert len(pillar_values) == 16, "Must have exactly 16 pillar values"
+        
+        # Quantize to fp20 precision
+        fp20_raw = np.array([self.float_to_fp20(v) for v in pillar_values], dtype=np.int64)
+        signal_32 = np.zeros(32, dtype=np.float64)
+        
+        # Elements 0-15: fp20-quantized pillar values
+        for i in range(16):
+            signal_32[i] = self.fp20_to_float(fp20_raw[i])
+        
+        # Elements 16-31: harmonic coefficients (matching wht_packet.cpp)
+        pillar_rms = np.sqrt(np.mean(np.array(pillar_values) ** 2))
+        for i in range(8):
+            # H_n = sin(n * pi / 8) / (n + 1), fp20 quantized
+            h = np.sin(i * np.pi / 8) / (i + 1) if i > 0 else 0.0
+            fp20_h = self.float_to_fp20(h * pillar_rms)
+            signal_32[16 + i] = self.fp20_to_float(fp20_h)
+        
+        # Elements 24-31: resonance cache
+        for i in range(8):
+            signal_32[24 + i] = self.fp20_to_float(self.float_to_fp20(0.1 * (1.0 - i * 0.1)))
+        
+        # Apply WHT
+        wht_signal = self._fwht(signal_32.astype(np.float32))
+        return wht_signal
+    
+    def decode_fp20_signal_to_pillars(self, wht_signal: np.ndarray) -> np.ndarray:
+        """Decode fp20-precision WHT signal back to 16 pillar values.
+        
+        Args:
+            wht_signal: 32-element float array (WHT domain)
+        
+        Returns:
+            16-element float array of decoded pillar states
+        """
+        assert len(wht_signal) == 32, "WHT signal must be 32 elements"
+        
+        # Inverse WHT
+        temp = self._ifwht(wht_signal.copy())
+        
+        # Extract and de-quantize first 16 elements from fp20
+        pillars = np.zeros(16, dtype=np.float32)
+        for i in range(16):
+            raw = self.float_to_fp20(temp[i])
+            pillars[i] = self.fp20_to_float(raw)
+            # Clamp to valid pillar range [0, 1]
+            pillars[i] = np.clip(pillars[i], 0.0, 1.0)
+        
+        return pillars
     
     def translate_blackboard_entries(self) -> List[Path]:
         """Translate all entries in the blackboard to WHT signals."""

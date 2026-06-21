@@ -11,14 +11,49 @@
 #include <cstring>
 #include <sstream>
 #include <fstream>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 
-int executeCommand(const std::vector<std::string>& cmd) {
+static int exec_command(const std::vector<std::string>& cmd) {
+  if (cmd.empty()) return -1;
+#ifdef _WIN32
   std::ostringstream oss;
   for (size_t i = 0; i < cmd.size(); i++) {
-    oss << cmd[i];
+    if (cmd[i].find(' ') != std::string::npos) oss << '"' << cmd[i] << '"';
+    else oss << cmd[i];
     if (i < cmd.size() - 1) oss << " ";
   }
-  return system(oss.str().c_str());
+  std::string cmdline = oss.str();
+  STARTUPINFOA si = {sizeof(si)};
+  PROCESS_INFORMATION pi;
+  if (!CreateProcessA(NULL, &cmdline[0], NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+    return -1;
+  }
+  WaitForSingleObject(pi.hProcess, INFINITE);
+  DWORD exit_code;
+  GetExitCodeProcess(pi.hProcess, &exit_code);
+  CloseHandle(pi.hProcess);
+  CloseHandle(pi.hThread);
+  return static_cast<int>(exit_code);
+#else
+  pid_t pid = fork();
+  if (pid == 0) {
+    std::vector<char*> args;
+    for (const auto& s : cmd) args.push_back(const_cast<char*>(s.c_str()));
+    args.push_back(nullptr);
+    execvp(args[0], args.data());
+    _exit(127);
+  } else if (pid < 0) {
+    return -1;
+  }
+  int status;
+  waitpid(pid, &status, 0);
+  return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+#endif
 }
 
 void printUsage(const char* progName) {
@@ -124,7 +159,7 @@ int main(int argc, const char** argv) {
     cmd.push_back(llOut);
     
     std::cout << "vncc: Compiling to LLVM IR...\n";
-    if (executeCommand(cmd) != 0) {
+    if (exec_command(cmd) != 0) {
       std::cerr << "vncc: LLVM IR compilation failed\n";
       return 1;
     }
@@ -147,7 +182,7 @@ int main(int argc, const char** argv) {
     cmd.push_back(ptxOut);
     
     std::cout << "vncc: Compiling to CUDA PTX...\n";
-    if (executeCommand(cmd) != 0) {
+    if (exec_command(cmd) != 0) {
       std::cerr << "vncc: PTX compilation failed\n";
       return 1;
     }
@@ -173,7 +208,7 @@ int main(int argc, const char** argv) {
     cmd.push_back(llvmOut);
     
     std::cout << "vncc: Compiling to LLVM IR for SPIR-V...\n";
-    if (executeCommand(cmd) != 0) {
+    if (exec_command(cmd) != 0) {
       std::cerr << "vncc: LLVM IR compilation failed\n";
       return 1;
     }
@@ -187,7 +222,7 @@ int main(int argc, const char** argv) {
     cmdDis.push_back(llvmOut);
     cmdDis.push_back("-o");
     cmdDis.push_back(llvmLL);
-    if (executeCommand(cmdDis) != 0) {
+    if (exec_command(cmdDis) != 0) {
       std::cerr << "vncc: LLVM disassemble failed\n";
       return 1;
     }
@@ -204,7 +239,7 @@ int main(int argc, const char** argv) {
     cmdAsm.push_back(llvmLL);
     cmdAsm.push_back("-o");
     cmdAsm.push_back(llvmOut);
-    if (executeCommand(cmdAsm) != 0) {
+    if (exec_command(cmdAsm) != 0) {
       std::cerr << "vncc: LLVM assemble failed\n";
       return 1;
     }
@@ -217,7 +252,7 @@ int main(int argc, const char** argv) {
     cmd2.push_back(spirvOut);
     
     std::cout << "vncc: Translating to SPIR-V...\n";
-    if (executeCommand(cmd2) != 0) {
+    if (exec_command(cmd2) != 0) {
       std::cerr << "vncc: SPIR-V translation failed\n";
       return 1;
     }
@@ -239,7 +274,7 @@ int main(int argc, const char** argv) {
   }
   
   std::cout << "vncc: Compiling to native code...\n";
-  if (executeCommand(cmd) != 0) {
+  if (exec_command(cmd) != 0) {
     std::cerr << "vncc: compilation failed\n";
     return 1;
   }

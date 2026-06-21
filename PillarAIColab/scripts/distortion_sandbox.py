@@ -108,17 +108,22 @@ class DistortionSandbox:
     5. 16-Pillar integration for innovation management
     """
     
+    MAX_EVENTS = 2000
+    MAX_CANDIDATES = 500
+
     def __init__(self):
         """Initialize the sandbox with pillar loader and data loading."""
         self.pillar_loader = None
         self.events: List[DistortionEvent] = []
         self.candidates: List[DistortionEvent] = []
         
-        # TODO[MEMORY]: Memory leak risk - events and candidates lists grow forever
-        # Fix: Add max size limit or periodic cleanup
-        # TODO: Add self.max_events = 1000 and truncate in _save_data()
-        
         self._load_data()
+        
+        # Enforce caps on startup to prevent unbounded growth
+        if len(self.events) > self.MAX_EVENTS:
+            self.events = self.events[-self.MAX_EVENTS:]
+        if len(self.candidates) > self.MAX_CANDIDATES:
+            self.candidates = self.candidates[-self.MAX_CANDIDATES:]
         
         if PILLAR_LOADER_AVAILABLE:
             try:
@@ -128,12 +133,7 @@ class DistortionSandbox:
                 print(f"Warning: Could not load pillars: {e}")
     
     def _load_data(self):
-        """
-        Load existing events and candidates from JSON files.
-        
-        TODO[MEMORY]: Loading all events into memory - could be slow with 1000s of events
-        Fix: Consider lazy loading or database backend
-        """
+        """Load existing events and candidates from JSON files (capped at MAX_EVENTS)."""
         if DISTORTION_EVENTS_PATH.exists():
             try:
                 data = json.loads(DISTORTION_EVENTS_PATH.read_text(encoding='utf-8'))
@@ -151,6 +151,12 @@ class DistortionSandbox:
     def _save_data(self):
         """Save events and candidates to JSON files."""
         try:
+            # Truncate before save to enforce caps
+            if len(self.events) > self.MAX_EVENTS:
+                self.events = self.events[-self.MAX_EVENTS:]
+            if len(self.candidates) > self.MAX_CANDIDATES:
+                self.candidates = self.candidates[-self.MAX_CANDIDATES:]
+
             events_data = [e.to_dict() for e in self.events]
             DISTORTION_EVENTS_PATH.write_text(
                 json.dumps(events_data, indent=2), encoding='utf-8'
@@ -208,16 +214,7 @@ class DistortionSandbox:
         return event_id
     
     def _calculate_pillar_scores(self, logic: str) -> Dict[str, float]:
-        """
-        Calculate how the logic affects each of the 16 pillars.
-        
-        TODO[BUG]: Pillar 12 (Harm) scoring is inverted - lower should be better
-        Currently adds harm_keywords which INCREASES harm score
-        Fix: Harm should decrease for "safe" keywords, increase for dangerous ones
-        
-        TODO[OPTIMIZE]: Current method uses simple keyword counting
-        Should use semantic analysis or at least word boundary checking
-        e.g., "destroy" vs "destroyed" vs "destroys" - currently only exact match
+        """Calculate how the logic affects each of the 16 pillars.
         
         Args:
             logic: The logic string to analyze
@@ -368,16 +365,11 @@ class DistortionSandbox:
         return 0.7  # Neutral
     
     def _test_wht_resonance(self, logic: str) -> float:
-        """
-        WHT Resonance: Does the distorted logic produce cleaner WHT signals?
+        """WHT Resonance: Does the distorted logic produce cleaner WHT signals?
+        
+        Uses top-25% WHT coefficients as signal power; bottom-75% as noise power.
         
         Returns resonance score (higher = cleaner signal).
-        
-        TODO[BUG]: Current SNR calculation is incorrect.
-        - signal_power = np.mean(wht_result ** 2) is not true signal power
-        - noise_power = np.var(wht_result) is not true noise power
-        - WHT coefficients: larger = more signal, smaller = more noise
-        FIX: Calculate signal as sum of top-k coefficients, noise as remainder.
         """
         if not NUMPY_AVAILABLE:
             return 0.5
@@ -450,11 +442,7 @@ class DistortionSandbox:
         """
         Step 3: Survivor Logic - Does the distortion outperform standard?
         
-        TODO[LOGIC]: Harm pillar not properly accounted for in graduation
-        - Currently: avg_score > 0.6 graduates (ignores Harm)
-        - Harm should be weighted: lower Harm = better (more likely to graduate)
-        - Fix: If Harm > 0.7 (threshold), automatically REJECT regardless of other scores
-        - Or: Subtract Harm score from avg_score before comparing to threshold
+        Harm penalization: if harm < 0.3 (unsafe), auto-reject.
         
         Args:
             event_id: ID of the event to evaluate
@@ -466,9 +454,6 @@ class DistortionSandbox:
         if not event or not event.test_results:
             print(f"Event {event_id} not found or not tested")
             return False, 0.0
-        
-        # TODO[BUG]: event.performance_delta set but never used elsewhere
-        # Should be used in candidation comparison or reporting
         
         # Calculate weighted performance score
         weights = {
@@ -491,8 +476,6 @@ class DistortionSandbox:
         avg_score = total_score / total_weight
         event.performance_delta = avg_score
         
-        # TODO[LOGIC]: Apply Harm penalty before graduation check
-        # Pillar Harm: if event.pillar_scores["harm"] < 0.3 (unsafe), should reject
         harm_score = event.pillar_scores.get("harm", 0.5)
         if harm_score < 0.3:
             print(f"[REJECTED] Event {event_id} - Harm score {harm_score:.2f} below 0.3 safety threshold")

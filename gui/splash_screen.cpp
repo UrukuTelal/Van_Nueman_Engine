@@ -40,13 +40,13 @@ void render_splash_screen(SplashState& state, float dt) {
     ImGui::SetCursorPos(ImVec2(100.0f, window_size.y - 100.0f));
     const char* pillar_names[] = {"Aw", "Wp", "F", "In", "Rs", "It", "Ch", 
                                    "Rl", "Pr", "Wm", "Me", "At", "H", "Ds"};
-    for (int i = 0; i < NUM_PILLARS; i++) {
-        float hue = (float)i / NUM_PILLARS;
+    for (int i = 0; i < NumPillars; i++) {
+        float hue = (float)i / NumPillars;
         ImVec4 color;
         ImGui::ColorConvertHSVtoRGB(hue, 0.8f, 0.9f, color.x, color.y, color.z);
         color.w = state.progress;
         ImGui::ColorButton(pillar_names[i], color, 0, ImVec2(20, 20));
-        if (i < NUM_PILLARS - 1) ImGui::SameLine();
+        if (i < NumPillars - 1) ImGui::SameLine();
     }
     
     ImGui::End();

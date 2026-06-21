@@ -1,6 +1,5 @@
-[submodule "PillarAIColab"]
-	path = PillarAIColab
-	url = https://github.com/UrukuTelal/PillarConstrainedAICollaboration.git
+# PillarAIColab submodule removed — use sibling Van_Nueman_AI/ instead
+# (standalone repo is the canonical source, ahead by ~14 scripts + fixes)
 [submodule "whisper.cpp"]
 	path = whisper.cpp
 	url = https://github.com/UrukuTelal/Van_Nueman_Whisper.git

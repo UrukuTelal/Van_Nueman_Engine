@@ -23,7 +23,7 @@ Drone::Drone(uint32_t drone_id, uint32_t owner_id)
     , current_load_(0.0f)
     , current_waypoint_index_(0)
 {
-    for (int i = 0; i < NUM_PILLARS; ++i) {
+    for (int i = 0; i < NumPillars; ++i) {
         pillars_[i] = (i < 3) ? 1.0f : 0.0f;
     }
     pillars_[0] = 0.8f;
@@ -146,8 +146,8 @@ void Drone::set_status(DroneStatus status) {
     status_ = status;
 }
 
-void Drone::set_pillar_values(const float pillars[NUM_PILLARS]) {
-    std::memcpy(pillars_, pillars, sizeof(float) * NUM_PILLARS);
+void Drone::set_pillar_values(const float pillars[NumPillars]) {
+    std::memcpy(pillars_, pillars, sizeof(float) * NumPillars);
 }
 
 void Drone::recharge(float amount) {

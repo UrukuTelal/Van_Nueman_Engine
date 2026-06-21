@@ -1,0 +1,2 @@
+C:/Projects/Van_Nueman_Engine/build_cuda_test/CMakeFiles/CMakeScratch/TryCompile-eewfh4/CMakeFiles/cmTC_96d5a.dir
+C:/Projects/Van_Nueman_Engine/build_cuda_test/CMakeFiles/CMakeScratch/TryCompile-eewfh4/CMakeFiles/ALL_BUILD.dir

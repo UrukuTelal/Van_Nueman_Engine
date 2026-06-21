@@ -4,19 +4,15 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <PillarEnum.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Number of pillars (from Entity.h)
-#ifndef NUM_PILLARS
-#define NUM_PILLARS 16
-#endif
-
 // Individual for neuroevolution
 typedef struct Individual {
-    float weights[NUM_PILLARS][NUM_PILLARS];  // Interaction matrix weights
+    float weights[NumPillars][NumPillars];  // Interaction matrix weights
     float fitness;
     int generation;
 } Individual;

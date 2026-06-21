@@ -1,7 +1,8 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include "../kernels/skelly_compute.cu"
-#include "../apis/skelly_api.cu"
+#include "../kernels/pillars_shared.cuh"
+#include "../kernels/skelly_shared.cuh"
+#include "../api/skelly_api.cu"
 
 // Fractal Skelly System: Scale-invariant Skelly for entity/server/federation
 // From FULL_ARCHITECTURE.md:
@@ -11,6 +12,8 @@
 
 #define MAX_FEDERATION_SKELLIES 64
 #define MAX_SERVER_SKELLIES 1024
+
+// CUDA pillars are stored as floats directly — no fp20_t conversion needed
 
 // Server-level Skelly components (Universal Terms mapping)
 // Compute = Bones, Processes = Organs, DataFlow = Muscles, Network = Transports
@@ -92,7 +95,7 @@ __global__ void fractal_server_tick_kernel(ServerSkelly* servers, uint32_t serve
     // Willpower → Process persistence (organ active_state)
     
     // Simplified: just update latency based on Resistance pillar
-    float resistance = FROM_SCALED(state.pillars.p[PILLAR_RESISTANCE]);
+    float resistance = state.pillars[Resistance];
     server.latency_avg = 1.0f / (1.0f + resistance * 10.0f);
 }
 
@@ -112,7 +115,7 @@ __global__ void fractal_federation_tick_kernel(FederationSkelly* feds, uint32_t 
     // Influence → Culture propagation (transport flow)
     
     // Simplified: update total bandwidth based on Relation pillar
-    float relation = FROM_SCALED(state.pillars.p[PILLAR_RELATION]);
+    float relation = state.pillars[Relation];
     fed.total_bandwidth = relation * 1000.0f;  // 1000 units per relation point
 }
 

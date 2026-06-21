@@ -1,12 +1,28 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <stdio.h>
 #include <math.h>
-#include "../kernels/skelly_compute.cu"  // Shared Skelly definitions
+#include "../kernels/skelly_shared.cuh"  // Shared Skelly definitions
+
+// Extern declarations for kernels defined in skelly_compute.cu (resolved at -rdc=true link time)
+extern __global__ void skelly_update_bones_kernel(BoneNode* bones, uint32_t count);
+extern __global__ void skelly_update_muscles_kernel(MuscleGroup* muscles, MuscleStrand* strands,
+                                                     BoneNode* bones, uint32_t count);
+extern __global__ void skelly_operate_organs_kernel(Organ* organs, uint32_t count,
+                                                     Transport* transports, PillarStateVector* entity_pillars);
+extern __global__ void skelly_turgor_kernel(InterstitialFluid* fluids, uint32_t fluid_count,
+                                             Transport* transports, MuscleGroup* muscles,
+                                             uint32_t muscle_count);
+extern __global__ void skelly_deform_svo_kernel(SkellyInstance* instances, uint32_t instance_count,
+                                                 BoneSegment* segments, MuscleGroup* muscles,
+                                                 uint32_t* dirty_chunks);
 
 // Fractal Skelly API: works for entity, server, federation scales
 // Ported from APIs/skelly_api.py (Python/Taichi reference)
 
 #define MAX_API_INSTANCES 100000
+#define STRANDS_PER_MUSCLE 8
+#define ORGANS_PER_SEGMENT 4
 
 // Skelly API context
 struct SkellyAPIContext {
@@ -44,14 +60,21 @@ __host__ SkellyAPIContext* skelly_api_init(uint32_t max_instances, uint32_t max_
                                             uint32_t max_segments, uint32_t max_muscles) {
     SkellyAPIContext* ctx = (SkellyAPIContext*)malloc(sizeof(SkellyAPIContext));
     
-    cudaMalloc(&ctx->d_instances, max_instances * sizeof(SkellyInstance));
-    cudaMalloc(&ctx->d_bones, max_bones * sizeof(BoneNode));
-    cudaMalloc(&ctx->d_segments, max_segments * sizeof(BoneSegment));
-    cudaMalloc(&ctx->d_muscles, max_muscles * sizeof(MuscleGroup));
-    cudaMalloc(&ctx->d_strands, max_muscles * 8 * sizeof(MuscleStrand));  // 8 strands per muscle
-    cudaMalloc(&ctx->d_organs, max_segments * 4 * sizeof(Organ));  // 4 organs per segment
-    cudaMalloc(&ctx->d_transports, max_segments * sizeof(Transport));
-    cudaMalloc(&ctx->d_fluids, max_segments * sizeof(InterstitialFluid));
+    auto check = [](cudaError_t e, const char* label) {
+        if (e != cudaSuccess) {
+            fprintf(stderr, "[skelly_api] cudaMalloc failed: %s (%s)\n", label, cudaGetErrorString(e));
+        }
+        return e;
+    };
+
+    check(cudaMalloc(&ctx->d_instances, max_instances * sizeof(SkellyInstance)), "d_instances");
+    check(cudaMalloc(&ctx->d_bones, max_bones * sizeof(BoneNode)), "d_bones");
+    check(cudaMalloc(&ctx->d_segments, max_segments * sizeof(BoneSegment)), "d_segments");
+    check(cudaMalloc(&ctx->d_muscles, max_muscles * sizeof(MuscleGroup)), "d_muscles");
+    check(cudaMalloc(&ctx->d_strands, max_muscles * STRANDS_PER_MUSCLE * sizeof(MuscleStrand)), "d_strands");
+    check(cudaMalloc(&ctx->d_organs, max_segments * ORGANS_PER_SEGMENT * sizeof(Organ)), "d_organs");
+    check(cudaMalloc(&ctx->d_transports, max_segments * sizeof(Transport)), "d_transports");
+    check(cudaMalloc(&ctx->d_fluids, max_segments * sizeof(InterstitialFluid)), "d_fluids");
     
     ctx->instance_count = 0;
     ctx->bone_count = 0;
@@ -202,7 +225,7 @@ __host__ void skelly_api_step(SkellyAPIContext* ctx, float dt) {
     
     // 2. Update muscles
     skelly_update_muscles_kernel<<<(ctx->muscle_count + 255) / 256, 256>>>(
-        ctx->d_muscles, ctx->muscle_count, ctx->d_strands, ctx->d_bones, ctx->muscle_count
+        ctx->d_muscles, ctx->d_strands, ctx->d_bones, ctx->muscle_count
     );
     
     // 3. Operate organs

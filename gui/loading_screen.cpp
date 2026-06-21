@@ -43,9 +43,9 @@ void render_loading_screen(LoadingState& state) {
     // Pillar loading indicators
     ImGui::SetCursorPos(ImVec2(center.x - 200, center.y + 80));
     ImGui::Text("Loading Pillars:");
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         ImVec4 color;
-        ImGui::ColorConvertHSVtoRGB((float)i / NUM_PILLARS, 0.8f, 0.9f, color.x, color.y, color.z);
+        ImGui::ColorConvertHSVtoRGB((float)i / NumPillars, 0.8f, 0.9f, color.x, color.y, color.z);
         if (i < state.current_pillar) {
             color.w = 1.0f;  // Loaded
         } else if (i == state.current_pillar) {

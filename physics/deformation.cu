@@ -1,9 +1,8 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <math.h>
-#include "../kernels/voxel_svo.cu"
-#include "../kernels/skelly_compute.cu"
-#include "pillar_coupling.cu"
+#include "../kernels/voxel_shared.cuh"
+#include "../kernels/skelly_shared.cuh"
 
 // Skelly physics → SVO deformation
 // From FULL_ARCHITECTURE.md: "Deformation (Skelly → SVO)"
@@ -131,10 +130,19 @@ __global__ void deformation_organ_volume_kernel(Organ* organs, uint32_t organ_co
     float3 center = (start.global_pos + end.global_pos) * 0.5f;
     float deform_radius = sqrtf(organ.volume) * 0.2f;
     
-    // Mark affected chunks as dirty
-    // Simplified: just mark all chunks for now
+    // Mark affected chunks as dirty using AABB intersection
+    float3 min_bound = center - make_float3(deform_radius, deform_radius, deform_radius);
+    float3 max_bound = center + make_float3(deform_radius, deform_radius, deform_radius);
     for (uint32_t c = 0; c < chunk_count; c++) {
-        atomicExch(&chunks[c].dirty, 1);
+        SVO_Chunk& chunk = chunks[c];
+        float3 chunk_min = make_float3(chunk.x * CHUNK_SIZE, chunk.y * CHUNK_SIZE, chunk.z * CHUNK_SIZE);
+        float3 chunk_max = make_float3((chunk.x + 1) * CHUNK_SIZE, (chunk.y + 1) * CHUNK_SIZE, (chunk.z + 1) * CHUNK_SIZE);
+        bool intersects = (min_bound.x <= chunk_max.x && max_bound.x >= chunk_min.x &&
+                           min_bound.y <= chunk_max.y && max_bound.y >= chunk_min.y &&
+                           min_bound.z <= chunk_max.z && max_bound.z >= chunk_min.z);
+        if (intersects) {
+            atomicExch(&chunk.dirty, 1);
+        }
     }
     atomicExch(&dirty_chunks[0], 1);
 }

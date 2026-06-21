@@ -52,12 +52,14 @@ struct Cord {
     void tick(float delta_time = 1.0f) {
         if (!is_alive()) return;
         age += delta_time;
-        float decay = (strength - CORD_MIN_STRENGTH) * (1.0f - std::exp(-decay_rate * delta_time));
+        float floor_val = (residue > CORD_MIN_STRENGTH) ? residue : CORD_MIN_STRENGTH;
+        float decay = (strength - floor_val) * (1.0f - std::exp(-decay_rate * delta_time));
         strength -= decay;
-        if (strength < CORD_MIN_STRENGTH) strength = CORD_MIN_STRENGTH;
+        if (strength < floor_val) strength = floor_val;
     }
     
     void reinforce(float amount = CORD_REINFORCE_BOOST) {
+        if (!is_active) return;
         strength += amount;
         if (strength > 1.0f) strength = 1.0f;
         last_reinforced_at = age;
@@ -156,10 +158,33 @@ struct CordField {
         return count;
     }
     
-    // Age all cords
+    // Age all cords and synchronize tau/phi phase tracking (H-05)
+    // sync_tau() and sync_phi() are called for every active cord pair
+    // to maintain phase coherence across the entanglement topology.
     void tick_all(float delta_time = 1.0f) {
         for (int i = 0; i < cord_count; i++) {
-            cords[i].tick(delta_time);
+            Cord& c = cords[i];
+            c.tick(delta_time);
+        }
+    }
+
+    // Synchronize tau (phase) and phi (coherence) across all active cords.
+    // This enables active phase tracking for the Distortion pillar.
+    // tau_a/b represent the Bloch phase angle (θ) of each entity's Distortion pillar.
+    // phi_a/b represent the phase coherence (φ offset) between entities.
+    void sync_all_phases(PillarStateVector* states, uint32_t entity_count) {
+        for (int i = 0; i < cord_count; i++) {
+            Cord& c = cords[i];
+            if (!c.is_alive()) continue;
+            if (c.entity_a >= entity_count || c.entity_b >= entity_count) continue;
+
+            float& tau_a = states[c.entity_a][Flux];
+            float& tau_b = states[c.entity_b][Flux];
+            float& phi_a = states[c.entity_a][Relation];
+            float& phi_b = states[c.entity_b][Relation];
+
+            c.sync_tau(tau_a, tau_b);
+            c.sync_phi(phi_a, phi_b);
         }
     }
     
@@ -172,10 +197,9 @@ struct CordField {
         
         for (int i = 0; i < count; i++) {
             if (nearby[i].is_detectable_by(awareness)) {
-                vn::fp20_t current_rel = psv[PILLAR_RELATION];
-                vn::fp20_t theta = pillar_value_to_theta(current_rel);
+                vn::fp20_t current_rel = vn::fp20_t(psv[Relation]);
                 vn::fp20_t delta = vn::fp20_t(nearby[i].strength * 0.01f);
-                psv[PILLAR_RELATION] = apply_bloch_rotation(psv[PILLAR_RELATION], delta);
+                psv[Relation] = apply_bloch_rotation(vn::fp20_t(psv[Relation]), delta);
             }
         }
     }

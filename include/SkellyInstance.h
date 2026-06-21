@@ -21,5 +21,8 @@ struct SkellyInstance {
     uint32_t alive;
 };
 
-// Maximum instances
-static constexpr uint32_t MAX_INSTANCES = 100000;
+// Maximum instances — must be at least MAX_ENTITIES from Entity.h
+#include "Entity.h"
+static constexpr uint32_t MAX_INSTANCES = MAX_ENTITIES;
+static_assert(MAX_INSTANCES >= MAX_ENTITIES,
+    "MAX_INSTANCES must be >= MAX_ENTITIES. Increase MAX_INSTANCES or decrease MAX_ENTITIES.");

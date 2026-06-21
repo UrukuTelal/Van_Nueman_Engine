@@ -15,16 +15,16 @@
 
   "logic_mechanics": {
     "perception_filter": {
-      "formula": "effective_awareness = Awareness * (1.0 - Distortion)",
-      "impact": "Decreases data and perception accuracy."
+      "formula": "phi_twist = Distortion * PI; effective_awareness_z = cos(Awareness.theta) * cos(phi_twist); effective_awareness = (z + 1) / 2",
+      "impact": "Applies phi-torsion to Awareness Bloch vector; reduces z-component along the distortion axis."
     },
     "identity_drift": {
       "formula": "integrity_loss = (Distortion * time_step) / Willpower",
       "impact": "Causes unit behavior to drift from its baseline Pillar State Vector."
     },
     "influence_corruption": {
-      "formula": "signal_truthfulness = signal * (1.0 - Distortion)",
-      "impact": "Viral misinformation; the capacity to spread states that do not match reality."
+      "formula": "signal_phi_twist = Distortion * PI; signal_truthfulness = cos(signal_theta) * cos(signal_phi_twist)",
+      "impact": "Viral misinformation; applies phi-torsion to signal Bloch vector, rotating it away from truth axis."
     }
   },
 

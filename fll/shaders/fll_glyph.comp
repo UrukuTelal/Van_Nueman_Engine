@@ -1,0 +1,222 @@
+#version 450
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_shader_explicit_arithmetic_types : enable
+
+// ── Fractal Logoramical Language — Glyph Compute Shader ─────────────
+// Procedurally renders resolution-independent fractal glyphs from
+// FractalNode geometric coefficients.
+//
+// Each workgroup covers an 8x8 pixel tile. Each invocation evaluates
+// the signed-distance-field of the FLL glyph at its pixel coordinate,
+// applying zoom-matrix depth transitions for multi-scale rendering.
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// ── Push Constants (64 bytes) ───────────────────────────────────────
+layout(push_constant) uniform PushConstants {
+    vec2  view_center;
+    float zoom_level;
+    float time;
+
+    float depth_blend;
+    float depth_fade;
+    uint  active_depth;
+    uint  max_display_depth;
+
+    float resonance_threshold;
+    float glyph_intensity;
+    float color_hue_shift;
+    uint  node_count;
+
+    float debug_show_edges;
+    float debug_show_quantum;
+    float pad0;
+    float pad1;
+} pc;
+
+// ── FractalNode GPU Layout ─────────────────────────────────────────
+// Mirrors CPU-side GeometricCoefficients exactly (80 bytes).
+// STD430 layout ensures alignment matches CPU packing.
+struct GeometricCoefficients {
+    vec2  center;           // offset  0, size  8
+    float rotation;         // offset  8, size  4
+    float scale;            // offset 12, size  4
+    vec4  harmonic_a;       // offset 16, size 16  (H0–H3)
+    vec4  harmonic_p;       // offset 32, size 16  (phase offsets)
+    float twist;            // offset 48, size  4
+    float asymmetry;        // offset 52, size  4
+    float inner_radius;     // offset 56, size  4
+    float outer_radius;     // offset 60, size  4
+    uint  symmetry_n;       // offset 64, size  4
+    float padding0;         // offset 68, size  4
+    float padding1;         // offset 72, size  4
+    float padding2;         // offset 76, size  4
+};                          // total  80 bytes
+
+// Compact GPU-only mirror of FractalNode with only UID, depth, geometry.
+// CPU FractalNode is 2560 bytes; we pack only the render-relevant fields
+// into this 96-byte structure for GPU upload efficiency.
+struct FractalNodeGPU {
+    uint64_t uid;           // offset  0, size  8
+    uint  depth;            // offset  8, size  4
+    uint  child_count;      // offset 12, size  4
+    GeometricCoefficients geo;  // offset 16, size 80
+};                          // total  96 bytes (stride for packed array)
+
+// ── Buffer bindings ─────────────────────────────────────────────────
+layout(binding = 0, std430) readonly buffer NodeBuffer {
+    FractalNodeGPU nodes[];
+} node_buf;
+
+layout(binding = 2, rgba8) uniform image2D output_image;
+
+// ── Signed Distance Functions ───────────────────────────────────────
+// Procedural glyph construction from geometric coefficients.
+
+// Rotate point p around origin by angle rad
+vec2 rotate(vec2 p, float rad) {
+    float c = cos(rad);
+    float s = sin(rad);
+    return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+}
+
+// Radial harmonic distance: sum of cos(k*theta + phase) * amplitude
+float radial_harmonic_dist(float theta, vec4 amps, vec4 phases) {
+    return amps.x * cos(1.0 * theta + phases.x)
+         + amps.y * cos(2.0 * theta + phases.y)
+         + amps.z * cos(3.0 * theta + phases.z)
+         + amps.w * cos(4.0 * theta + phases.w);
+}
+
+// Symmetry fold: map angle to [0, 2π/N] for N-fold symmetry
+float symmetry_fold(float theta, uint n) {
+    if (n == 0) return theta;
+    float period = 6.283185307 / float(n);
+    return abs(mod(theta, period) - period * 0.5);
+}
+
+// Signed distance to the FLL glyph defined by geo coefficients.
+float glyph_sdf(vec2 p, GeometricCoefficients geo) {
+    // Translate to glyph center and scale
+    vec2 lp = p - geo.center;
+    lp = rotate(lp, geo.rotation);
+
+    // Polar coordinates
+    float r = length(lp);
+    float theta = atan(lp.y, lp.x);
+
+    // Apply symmetry fold
+    theta = symmetry_fold(theta, geo.symmetry_n);
+
+    // Compute base radius from radial harmonics
+    float base_r = geo.outer_radius
+                 + radial_harmonic_dist(theta, geo.harmonic_a, geo.harmonic_p) * 0.3;
+
+    // Apply twist (rotation varies with radius)
+    float twist_angle = geo.twist * r * 2.0;
+    theta += twist_angle;
+    theta = symmetry_fold(theta, geo.symmetry_n);
+
+    // Recompute radius with twisted harmonics
+    float twisted_r = geo.outer_radius
+                    + radial_harmonic_dist(theta, geo.harmonic_a, geo.harmonic_p) * 0.3;
+
+    // Apply asymmetry
+    float asym = 1.0 + geo.asymmetry * cos(theta);
+    twisted_r *= asym;
+
+    // Distance to glyph boundary
+    float d = r - twisted_r;
+
+    // Inner cutout
+    float inner = geo.inner_radius - r;
+    d = max(d, inner);
+
+    return d;
+}
+
+// ── Depth transition helper ────────────────────────────────────────
+// Blend between parent and child glyphs based on zoom level.
+float depth_transition_weight(uint depth) {
+    float d = float(depth);
+    float adepth = float(pc.active_depth);
+    float dist = abs(d - adepth);
+    if (dist > 1.0) return 0.0;
+    float blend = 1.0 - dist;
+    if (dist < 1.0 && d > adepth) {
+        blend *= pc.depth_blend;
+    }
+    return blend * pc.depth_fade;
+}
+
+// ── Depth-based coloring ───────────────────────────────────────────
+vec3 depth_color(uint depth, float hue_shift) {
+    float t = float(depth) * 0.1 + hue_shift;
+    float r = 0.5 + 0.5 * cos(6.2831853 * (t + 0.0));
+    float g = 0.5 + 0.5 * cos(6.2831853 * (t + 0.333));
+    float b = 0.5 + 0.5 * cos(6.2831853 * (t + 0.667));
+    return vec3(r, g, b);
+}
+
+// ── Main ────────────────────────────────────────────────────────────
+void main() {
+    ivec2 dims = imageSize(output_image);
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    if (coord.x >= dims.x || coord.y >= dims.y) return;
+
+    // Normalized pixel coordinate [-1, 1] with aspect correction
+    float aspect = float(dims.x) / float(dims.y);
+    vec2 uv = vec2(coord) / vec2(dims) * 2.0 - 1.0;
+    uv.x *= aspect;
+    uv -= pc.view_center * (1.0 / pc.zoom_level);
+    uv *= 1.0 / pc.zoom_level;
+
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    float min_dist = 1e10;
+    vec3 accum_color = vec3(0.0);
+    float accum_weight = 0.0;
+
+    // Evaluate all nodes, depth-blend based on zoom matrix
+    uint count = min(pc.node_count, uint(node_buf.nodes.length()));
+    for (uint i = 0; i < count; i++) {
+        FractalNodeGPU node = node_buf.nodes[i];
+
+        // Skip nodes beyond max display depth
+        if (node.depth > pc.max_display_depth) continue;
+
+        // Compute depth transition weight
+        float w = depth_transition_weight(node.depth);
+        if (w < 0.01) continue;
+
+        // Evaluate glyph SDF
+        float d = glyph_sdf(uv, node.geo);
+
+        // Soft glyph boundary
+        float glyph = 1.0 - smoothstep(0.0, 0.02 / pc.zoom_level, abs(d));
+
+        // Only accumulate if within glyph boundary
+        if (glyph > 0.01 && d < 0.05 / pc.zoom_level) {
+            vec3 dc = depth_color(node.depth, pc.color_hue_shift);
+            float intensity = pc.glyph_intensity * glyph * w;
+            accum_color += dc * intensity;
+            accum_weight += intensity;
+        }
+
+        // Track closest SDF for background glow
+        float abs_d = abs(d);
+        if (abs_d < min_dist) {
+            min_dist = abs_d;
+        }
+    }
+
+    if (accum_weight > 0.0) {
+        color.rgb = accum_color / accum_weight;
+        color.a = min(1.0, accum_weight);
+    } else {
+        // Background: subtle glow from nearest glyph
+        float glow = exp(-min_dist * min_dist * 100.0 * pc.zoom_level) * 0.15;
+        color = vec4(0.02, 0.02, 0.05 + glow, 1.0);
+    }
+
+    imageStore(output_image, coord, color);
+}

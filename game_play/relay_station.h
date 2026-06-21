@@ -9,9 +9,7 @@
 #include <vector>
 #include <cstring>
 
-#ifndef NUM_PILLARS
-#define NUM_PILLARS 16
-#endif
+#include <PillarEnum.h>
 
 // Relay Station state
 struct RelayStation {
@@ -21,7 +19,7 @@ struct RelayStation {
     uint32_t star_system_id;
     
     // Pillar state (defines station identity)
-    float baseline_pillars[NUM_PILLARS];
+    float baseline_pillars[NumPillars];
     
     // Station properties
     float signal_strength;            // 0.0 - 1.0 (affected by Presence pillar)
@@ -46,7 +44,7 @@ public:
     // Build a new relay station
     // Returns station ID (derived from PSV + position)
     uint32_t build_station(float x, float y, float z, uint32_t star_system_id,
-                              const float pillar_template[NUM_PILLARS]);
+                              const float pillar_template[NumPillars]);
     
     // Destroy/remove station
     bool destroy_station(uint32_t station_id);
@@ -73,7 +71,7 @@ public:
     bool are_stations_identical(const RelayStation& a, const RelayStation& b) const;
     
     // Calculate signal strength from pillars
-    float calculate_signal_strength(const float pillars[NUM_PILLARS]) const;
+    float calculate_signal_strength(const float pillars[NumPillars]) const;
     
     uint32_t get_station_count() const { return static_cast<uint32_t>(stations_.size()); }
     
@@ -84,5 +82,5 @@ private:
     
     // Compute station ID from position + pillar template
     uint32_t compute_station_id(float x, float y, float z,
-                                   const float pillars[NUM_PILLARS]) const;
+                                   const float pillars[NumPillars]) const;
 };

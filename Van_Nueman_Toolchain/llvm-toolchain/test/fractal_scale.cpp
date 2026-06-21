@@ -29,7 +29,7 @@ void update_pillars(void* state, FractalScale scale) {
     case FractalScale::Entity: {
       EntityState* es = static_cast<EntityState*>(state);
       // Update entity pillars
-      es->pillars[vn::PillarIndex::Awareness] = vn::to_scaled(0.7f);
+      es->pillars[vn::PillarIndex::Awareness] = vn::fp20_t(0.7f);
       break;
     }
     case FractalScale::Server: {

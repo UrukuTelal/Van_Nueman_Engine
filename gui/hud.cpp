@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "../include/Entity.h"
 #include "../include/SkellyInstance.h"
+#include "../scale/SemanticProjection.h"
 
 // HUD state
 struct HUDState {
@@ -12,7 +13,7 @@ struct HUDState {
     float pillar_overlay_alpha = 0.8f;
 };
 
-void render_hud(HUDState& state, const float pillar_values[NUM_PILLARS], 
+void render_hud(HUDState& state, const float pillar_values[NumPillars], 
                  float fps, int entity_count, int server_count) {
     ImGui::SetNextWindowPos(ImVec2(10, 10));
     ImGui::SetNextWindowSize(ImVec2(300, 150));
@@ -33,7 +34,7 @@ void render_hud(HUDState& state, const float pillar_values[NUM_PILLARS],
     // Pillar overlay (mini)
     if (state.show_pillar_overlay) {
         ImGui::Text("Pillars:");
-        for (int i = 0; i < NUM_PILLARS; i++) {
+        for (int i = 0; i < NumPillars; i++) {
             float val = pillar_values ? pillar_values[i] : 0.0f;
             ImGui::PushID(i);
             ImGui::ProgressBar(val, ImVec2(200, 10));
@@ -46,23 +47,26 @@ void render_hud(HUDState& state, const float pillar_values[NUM_PILLARS],
     ImGui::End();
 }
 
-// Pillar tooltip for detailed view
+// Pillar tooltip for detailed view — uses CognitiveProjection (Layer 2)
 void render_pillar_tooltip(int pillar_idx, float value, const char* name) {
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::Text("%s: %.2f", name, value);
         
-        // Show meaning
+        // Project to cognitive and biological semantics
         switch (pillar_idx) {
-            case PILLAR_AWARENESS: ImGui::Text("Intelligence/Analytics"); break;
-            case PILLAR_WILLPOWER: ImGui::Text("Strategic Persistence"); break;
-            case PILLAR_FORCE: ImGui::Text("Execution/Production"); break;
-            case PILLAR_HARM: 
-                if (value > 0.7f) ImGui::TextColored(ImVec4(1,0,0,1), "HIGH HARM!"); 
+            case Awareness: ImGui::Text("Cognitive: focus_inward=%.2f", 1.0f-value); break;
+            case Willpower: ImGui::Text("Biological: willpower_stamina | Cognitive: agency"); break;
+            case Force: ImGui::Text("Biological: force_output | Cognitive: agency"); break;
+            case Harm: 
+                if (value > 0.7f) ImGui::TextColored(ImVec4(1,0,0,1), "Cognitive: high cognitive_load");
                 break;
-            case PILLAR_DISTORTION: 
-                if (value > 0.5f) ImGui::TextColored(ImVec4(1,0.5f,0,1), "High Distortion"); 
+            case Distortion: 
+                if (value > 0.5f) ImGui::TextColored(ImVec4(1,0.5f,0,1), "Biological: high sensory_noise");
                 break;
+            case Integrity: ImGui::Text("Biological: membrane_integrity | Cognitive: identity_coherence"); break;
+            case Memory: ImGui::Text("Cognitive: experiential_memory"); break;
+            case Attraction: ImGui::Text("Biological: resource_affinity | Cognitive: curiosity"); break;
         }
         ImGui::EndTooltip();
     }

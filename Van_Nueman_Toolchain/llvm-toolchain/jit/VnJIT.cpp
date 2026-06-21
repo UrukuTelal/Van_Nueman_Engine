@@ -11,6 +11,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Support/TargetSelect.h"
 #include <memory>
 #include <string>
@@ -67,7 +68,7 @@ private:
     Type* Int32Ty = Type::getInt32Ty(M.getContext());
     Type* FloatTy = Type::getFloatTy(M.getContext());
     Type* VoidTy = Type::getVoidTy(M.getContext());
-    Type* PtrTy = Type::getInt32PtrTy(M.getContext());
+    Type* PtrTy = PointerType::getUnqual(M.getContext());
 
     FunctionType* FT = FunctionType::get(VoidTy, {PtrTy, FloatTy}, false);
     Function* F = Function::Create(FT, Function::ExternalLinkage, Name, &M);

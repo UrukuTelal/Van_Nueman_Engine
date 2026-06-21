@@ -12,7 +12,7 @@ struct WHTPacket {
     int message_type;
 };
 
-void encode_pillar_vector(const float pillars[NUM_PILLARS], float signal[WHT_N]);
-void decode_pillar_vector(const float signal[WHT_N], float pillars[NUM_PILLARS]);
+void encode_pillar_vector(const float pillars[NumPillars], float signal[WHT_N]);
+void decode_pillar_vector(const float signal[WHT_N], float pillars[NumPillars]);
 
 #endif // WHT_PACKET_H

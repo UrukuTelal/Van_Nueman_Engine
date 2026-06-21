@@ -138,25 +138,44 @@ struct ConstraintState {
                 if (level > MAX_CONSTRAINT) level = MAX_CONSTRAINT;
                 delta_absorbed = excess;
                 
-                result.events[result.event_count++] = {
-                    "overflow", constraint_before, level,
-                    depth_before, 0.0f, remaining, -1
-                };
+                {
+                    ConstraintEvent& ev = result.events[result.event_count++];
+                    std::strncpy(ev.event_type, "overflow", sizeof(ev.event_type) - 1);
+                    ev.event_type[sizeof(ev.event_type) - 1] = '\0';
+                    ev.constraint_before = constraint_before;
+                    ev.constraint_after = level;
+                    ev.depth_before = depth_before;
+                    ev.depth_after = 0.0f;
+                    ev.delta = remaining;
+                    ev.source_pillar = -1;
+                }
                 
                 if (level >= MAX_CONSTRAINT) {
-                    result.events[result.event_count++] = {
-                        "full_constraint", constraint_before, MAX_CONSTRAINT,
-                        depth_before, 0.0f, MAX_CONSTRAINT - constraint_before, -1
-                    };
+                    ConstraintEvent& ev = result.events[result.event_count++];
+                    std::strncpy(ev.event_type, "full_constraint", sizeof(ev.event_type) - 1);
+                    ev.event_type[sizeof(ev.event_type) - 1] = '\0';
+                    ev.constraint_before = constraint_before;
+                    ev.constraint_after = MAX_CONSTRAINT;
+                    ev.depth_before = depth_before;
+                    ev.depth_after = 0.0f;
+                    ev.delta = MAX_CONSTRAINT - constraint_before;
+                    ev.source_pillar = -1;
                 }
             } else {
                 depth_after = depth - depth_cost;
                 delta_absorbed = excess;
                 
-                result.events[result.event_count++] = {
-                    "accumulation", level, level,
-                    depth_before, depth_after, depth_cost, -1
-                };
+                {
+                    ConstraintEvent& ev = result.events[result.event_count++];
+                    std::strncpy(ev.event_type, "accumulation", sizeof(ev.event_type) - 1);
+                    ev.event_type[sizeof(ev.event_type) - 1] = '\0';
+                    ev.constraint_before = level;
+                    ev.constraint_after = level;
+                    ev.depth_before = depth_before;
+                    ev.depth_after = depth_after;
+                    ev.delta = depth_cost;
+                    ev.source_pillar = -1;
+                }
             }
         }
         
@@ -190,11 +209,12 @@ struct ConstraintState {
         float pull_strength = level * 0.005f;
         float equator = PI * 0.5f;
         
-        for (int i = 0; i < NUM_PILLARS; i++) {
-            float theta = pillar_value_to_theta(psv[i]).to_float();
+        for (int i = 0; i < NumPillars; i++) {
+            vn::fp20_t p = vn::fp20_t(psv[i]);
+            float theta = pillar_value_to_theta(p).to_float();
             float diff = equator - theta;
             if (fabsf(diff) > 0.001f) {
-                psv[i] = apply_bloch_rotation(psv[i], vn::fp20_t(diff * pull_strength));
+                psv[i] = apply_bloch_rotation(p, vn::fp20_t(diff * pull_strength)).to_float();
             }
         }
     }
@@ -206,29 +226,30 @@ struct ConstraintState {
     void recover(PillarStateVector& psv, float delta_time = 1.0f, float recovery_rate = 0.01f) {
         if (level <= 0.0f) return;
         
-        float integrity = psv[PILLAR_INTEGRITY].to_float();
-        float cohesion = psv[PILLAR_COHESION].to_float();
+        float integrity = psv[Integrity];
+        float cohesion = psv[Cohesion];
         float recovery_strength = integrity * cohesion * recovery_rate * delta_time;
         
         float before = level;
         // Rotate all pillars toward north pole (θ=0) to counteract the equator pull
-        for (int i = 0; i < NUM_PILLARS; i++) {
-            float theta = pillar_value_to_theta(psv[i]).to_float();
+        for (int i = 0; i < NumPillars; i++) {
+            vn::fp20_t p = vn::fp20_t(psv[i]);
+            float theta = pillar_value_to_theta(p).to_float();
             float north_pole = 0.0f;
             float diff = north_pole - theta;
-            psv[i] = apply_bloch_rotation(psv[i], vn::fp20_t(diff * recovery_strength));
+            psv[i] = apply_bloch_rotation(p, vn::fp20_t(diff * recovery_strength)).to_float();
         }
         
         level -= recovery_strength;
         if (level < MIN_CONSTRAINT) level = MIN_CONSTRAINT;
         
-        float depth = psv[PILLAR_DEPTH].to_float();
+        float depth = psv[Depth];
         float depth_recovery = recovery_strength * 0.3f;
         depth += depth_recovery;
         if (depth > 1.0f) depth = 1.0f;
-        psv[PILLAR_DEPTH] = vn::fp20_t(depth);
+        psv[Depth] = depth;
         
-        record_event("recovery", before, level, depth - depth_recovery, depth, recovery_strength, PILLAR_INTEGRITY);
+        record_event("recovery", before, level, depth - depth_recovery, depth, recovery_strength, Integrity);
     }
     
     // ── External restoration ───────────────────────────────────
@@ -240,23 +261,24 @@ struct ConstraintState {
         float delta = operator_val * 0.1f;
         
         // Rotate all pillars toward north pole (θ=0) to counteract equator pull
-        for (int i = 0; i < NUM_PILLARS; i++) {
-            float theta = pillar_value_to_theta(subject[i]).to_float();
+        for (int i = 0; i < NumPillars; i++) {
+            vn::fp20_t p = vn::fp20_t(subject[i]);
+            float theta = pillar_value_to_theta(p).to_float();
             float north_pole = 0.0f;
             float diff = north_pole - theta;
-            subject[i] = apply_bloch_rotation(subject[i], vn::fp20_t(diff * delta));
+            subject[i] = apply_bloch_rotation(p, vn::fp20_t(diff * delta)).to_float();
         }
         
         level -= delta;
         if (level < MIN_CONSTRAINT) level = MIN_CONSTRAINT;
         
-        float depth = subject[PILLAR_DEPTH].to_float();
+        float depth = subject[Depth];
         float depth_restore = delta * 0.5f;
         depth += depth_restore;
         if (depth > 1.0f) depth = 1.0f;
-        subject[PILLAR_DEPTH] = vn::fp20_t(depth);
+        subject[Depth] = vn::fp20_t(depth);
         
-        record_event("recovery", before, level, depth - depth_restore, depth, delta, PILLAR_INTEGRITY);
+        record_event("recovery", before, level, depth - depth_restore, depth, delta, Integrity);
     }
 };
 

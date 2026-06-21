@@ -6,16 +6,21 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 #include "../include/Entity.h"
 #include "../kernels/voxel_svo.h"
+#include "../voxel/VoxelCell.h"
 
 constexpr int CHUNK_SIZE = 64;
+constexpr int CHUNK_BITS = 6;
 constexpr int VOXEL_COUNT = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
 
 struct Voxel {
-    uint8_t material;  // 0=empty, 1=cube, 2=octahedron, etc.
+    uint8_t material;  // 0=empty, 1=cube, 2=octahedron, 3=resource, etc.
     uint8_t r, g, b, a;
 };
+
+constexpr uint8_t MATERIAL_RESOURCE = 3;
 
 class Chunk {
 public:
@@ -43,6 +48,18 @@ public:
     SVO_Chunk* get_svo_chunk() { return &svo_chunk_; }
     void update_svo();
     
+    // ── Active Cell (Truncated Octahedron) Management ─────────
+    VoxelCell* get_active_cell(uint64_t bcc_key);
+    VoxelCell* promote_to_active(uint32_t x, uint32_t y, uint32_t z, const YieldMatrix& material);
+    void remove_active_cell(uint64_t bcc_key);
+    uint32_t active_cell_count() const { return static_cast<uint32_t>(active_cells_.size()); }
+    
+    // BCC helpers
+    uint64_t bcc_key_for(uint32_t x, uint32_t y, uint32_t z) const;
+    
+    // Active cell iteration (const access only)
+    const std::unordered_map<uint64_t, VoxelCell>& get_active_cells() const { return active_cells_; }
+    
     // Serialization
     bool save_to_file(const std::string& path) const;
     bool load_from_file(const std::string& path);
@@ -55,6 +72,7 @@ private:
     std::vector<Voxel> voxels_;
     bool dirty_;
     SVO_Chunk svo_chunk_;
+    std::unordered_map<uint64_t, VoxelCell> active_cells_;
     
     // Helper
     static size_t voxel_index(int x, int y, int z);

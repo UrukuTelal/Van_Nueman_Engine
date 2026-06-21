@@ -67,17 +67,44 @@ public:
         } else {
             return ScaledInt(static_cast<T>((static_cast<int32_t>(value_) * static_cast<int32_t>(o.value_)) >> N));
         }
-#else
+#elif defined(__SIZEOF_INT128__)
         using WideT = typename std::conditional<std::is_same<T, int64_t>::value, __int128,
                             typename std::conditional<std::is_same<T, int32_t>::value, int64_t,
                             typename std::conditional<std::is_same<T, int16_t>::value, int32_t, T>::type>::type>::type;
         WideT product = static_cast<WideT>(value_) * static_cast<WideT>(o.value_);
         return ScaledInt(static_cast<T>(product >> N));
+#else
+        if constexpr (std::is_same_v<T, int64_t>) {
+            bool neg_a = value_ < 0;
+            bool neg_b = o.value_ < 0;
+            uint64_t ua = neg_a ? -static_cast<uint64_t>(value_) : static_cast<uint64_t>(value_);
+            uint64_t ub = neg_b ? -static_cast<uint64_t>(o.value_) : static_cast<uint64_t>(o.value_);
+            bool neg = neg_a != neg_b;
+            uint32_t al = static_cast<uint32_t>(ua);
+            uint32_t ah = static_cast<uint32_t>(ua >> 32);
+            uint32_t bl = static_cast<uint32_t>(ub);
+            uint32_t bh = static_cast<uint32_t>(ub >> 32);
+            uint64_t ll = static_cast<uint64_t>(al) * bl;
+            uint64_t lh = static_cast<uint64_t>(al) * bh;
+            uint64_t hl = static_cast<uint64_t>(ah) * bl;
+            uint64_t hh = static_cast<uint64_t>(ah) * bh;
+            uint64_t mid = lh + hl;
+            uint64_t low = ll + (mid << 32);
+            uint64_t carry = (low < ll) ? 1 : 0;
+            uint64_t high = hh + (mid >> 32) + carry;
+            uint64_t result_unsigned = (low >> N) | (high << (64 - N));
+            T result = neg ? -static_cast<T>(result_unsigned) : static_cast<T>(result_unsigned);
+            return ScaledInt(result);
+        } else if constexpr (std::is_same_v<T, int32_t>) {
+            return ScaledInt(static_cast<T>((static_cast<int64_t>(value_) * static_cast<int64_t>(o.value_)) >> N));
+        } else {
+            return ScaledInt(static_cast<T>((static_cast<int32_t>(value_) * static_cast<int32_t>(o.value_)) >> N));
+        }
 #endif
     }
     ScaledInt operator/(ScaledInt o) const {
       if (o.value_ == 0) {
-          return ScaledInt(T(0));
+          return ScaledInt();
       }
 #if defined(_MSC_VER) && defined(_M_X64) && !defined(__SIZEOF_INT128__)
       if constexpr (std::is_same_v<T, int64_t>) {
@@ -103,6 +130,7 @@ public:
           return ScaledInt(static_cast<T>(q));
       } else
 #endif
+#if defined(__SIZEOF_INT128__)
       {
           using WideT = typename std::conditional<std::is_same<T, int64_t>::value, __int128,
                               typename std::conditional<std::is_same<T, int32_t>::value, int64_t,
@@ -122,6 +150,30 @@ public:
           if (negative) q = static_cast<UWideT>(-static_cast<WideT>(q));
           return ScaledInt(static_cast<T>(q));
       }
+#else
+      {
+          T a = value_;
+          T b = o.value_;
+          if (a == std::numeric_limits<T>::min()) return ScaledInt(std::numeric_limits<T>::max());
+          if (b < 0) { b = -b; a = -a; }
+          if (a == std::numeric_limits<T>::min()) return ScaledInt(std::numeric_limits<T>::max());
+          bool negative = (a < 0);
+          uint64_t abs_num = static_cast<uint64_t>(negative ? -a : a);
+          uint64_t abs_den = static_cast<uint64_t>(b);
+          uint64_t q;
+          if (abs_num <= (std::numeric_limits<uint64_t>::max() >> N)) {
+              uint64_t numerator = abs_num << N;
+              q = numerator / abs_den;
+              uint64_t r = numerator % abs_den;
+              if (r >= (abs_den >> 1)) q += 1;
+          } else {
+              double dq = (static_cast<double>(abs_num) * static_cast<double>(uint64_t(1) << N)) / static_cast<double>(abs_den);
+              q = static_cast<uint64_t>(dq + 0.5);
+          }
+          if (negative) q = static_cast<uint64_t>(-static_cast<int64_t>(q));
+          return ScaledInt(static_cast<T>(q));
+      }
+#endif
     }
 
   ScaledInt operator<<(int s) const { return ScaledInt(value_ << s); }
@@ -239,7 +291,7 @@ inline ScaledInt<T, N> fp_sqrt(ScaledInt<T, N> x) {
        guess = (guess + quotient) >> 1;
        if (guess_sq == static_cast<uint64_t>(val) || guess_sq == static_cast<uint64_t>(val) + 1) break;
    }
-#else
+#elif defined(__SIZEOF_INT128__)
    using WideT = typename std::conditional<std::is_same<T, int64_t>::value, __int128,
                        typename std::conditional<std::is_same<T, int32_t>::value, int64_t,
                        typename std::conditional<std::is_same<T, int16_t>::value, int32_t, T>::type>::type>::type;
@@ -247,6 +299,20 @@ inline ScaledInt<T, N> fp_sqrt(ScaledInt<T, N> x) {
    for (int i = 0; i < 6; i++) {
        if (guess == 0) break;
        WideT quotient = (static_cast<WideT>(val) << N) / guess;
+       guess = (guess + quotient) >> 1;
+   }
+#else
+   T guess = val >> 1;
+   for (int i = 0; i < 6; i++) {
+       if (guess == 0) break;
+       T quotient;
+       if (static_cast<uint64_t>(val) > (std::numeric_limits<uint64_t>::max() >> N)) {
+           double dq = static_cast<double>(val) * static_cast<double>(uint64_t(1) << N) / static_cast<double>(guess);
+           quotient = static_cast<T>(dq);
+       } else {
+           quotient = static_cast<T>((static_cast<uint64_t>(val) << N) / static_cast<uint64_t>(guess));
+       }
+       if (quotient > std::numeric_limits<T>::max() / 2) { guess = (guess + (T(1) << N)) >> 1; continue; }
        guess = (guess + quotient) >> 1;
    }
 #endif

@@ -80,6 +80,9 @@ struct CreatureState {
     float skin_tension;
     float alertness;
     float stress;
+    float pos_x;
+    float pos_y;
+    float pos_z;
     GrowthStage stage;
     bool alive;
     bool is_dreaming;
@@ -196,6 +199,9 @@ public:
     float get_age() const { return age_; }
     float get_scale() const { return scale_; }
     bool is_alive() const { return alive_; }
+    const Vec3& get_position() const { return position_; }
+    void set_position(const Vec3& pos) { position_ = pos; }
+    void set_position(float x, float y, float z) { position_ = Vec3(x, y, z); }
     
     Skeleton* get_skeleton() { return skeleton_.get(); }
     const Skeleton* get_skeleton() const { return skeleton_.get(); }
@@ -204,6 +210,9 @@ public:
     
     uint32_t get_entity_id() const { return entity_id_; }
     void set_entity_id(uint32_t id) { entity_id_ = id; }
+    
+    void get_pillar_state(PillarStateVector& out) const { out = pillar_state_; }
+    void set_pillar_state(const PillarStateVector& psv) { pillar_state_ = psv; }
     
     static constexpr uint32_t MAX_ACTIONS = 16;
     struct ActionConfig {
@@ -229,6 +238,7 @@ private:
     std::string state_ = "idle";
     
     uint32_t entity_id_ = 0;
+    Vec3 position_;
     
     std::unique_ptr<CreaturePhysics> physics_;
     std::unique_ptr<Skeleton> skeleton_;

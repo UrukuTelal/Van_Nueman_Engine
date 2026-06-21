@@ -7,6 +7,7 @@
 #include <array>
 #include <memory>
 #include "../simulation/tick_loop.h"
+#include "../include/GodNode.h"
 
 // Simple HTTP response
 struct HttpResponse {
@@ -39,9 +40,17 @@ private:
     HttpResponse get_chunk(int x, int y, int z);
     HttpResponse get_agents_list();
     
+    // Deity endpoints
+    HttpResponse get_god_nodes();
+    HttpResponse post_god_node_create(const std::string& body);
+    HttpResponse post_god_node_decommission(const std::string& body);
+    
     // Helper: parse JSON (simple implementation)
     static bool parse_json_int(const std::string& body, const std::string& key, int& out);
-    static std::string pillar_vector_to_json(const std::array<float, NUM_PILLARS>& pillars);
+    static std::string pillar_vector_to_json(const PillarVector& pillars);
+    
+    // God node field (shared state)
+    GodNodeField god_field;
 };
 
 #endif // VAN_NUEMAN_API_REST_H

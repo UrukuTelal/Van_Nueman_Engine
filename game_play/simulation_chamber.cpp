@@ -18,7 +18,7 @@ uint32_t SimulationChamber::load_creature(uint32_t genome_id, const char* creatu
     sc.name[127] = '\0';
     
     // Default pillar template
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         sc.pillars[i] = 0.5f;
     }
     sc.body_size = 0.5f;
@@ -56,7 +56,7 @@ uint32_t SimulationChamber::run_simulation(uint32_t creature_id, uint32_t ticks,
     sim.result.energy_efficiency = 1.0f;
     sim.result.generation = 1;
     sim.result.deployment_ready = false;
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         sim.result.pillar_avg[i] = creature->pillars[i];
         sim.result.pillar_min[i] = creature->pillars[i];
         sim.result.pillar_max[i] = creature->pillars[i];
@@ -133,7 +133,7 @@ void SimulationChamber::simulate_tick(ActiveSimulation& sim, float delta_time) {
     // Simulate pillar performance under environmental stress
     float stress_factor = sim.environment_harshness * (1.0f + rand() % 100 / 100.0f);
     
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         float pillar_val = creature->pillars[i];
         float stress_impact = stress_factor * (1.0f - pillar_val);  // Lower pillars = more impact
         
@@ -153,10 +153,10 @@ void SimulationChamber::simulate_tick(ActiveSimulation& sim, float delta_time) {
         
         // Calculate fitness
         float avg_fitness = 0.0f;
-        for (int i = 0; i < NUM_PILLARS; i++) {
+        for (int i = 0; i < NumPillars; i++) {
             avg_fitness += sim.result.pillar_avg[i];
         }
-        avg_fitness /= NUM_PILLARS;
+        avg_fitness /= NumPillars;
         
         // Adjust for environment
         sim.result.fitness_score = avg_fitness * (1.0f - sim.environment_harshness * 0.3f);
@@ -165,16 +165,15 @@ void SimulationChamber::simulate_tick(ActiveSimulation& sim, float delta_time) {
         // Deployment ready if fitness > 0.6 and survived
         sim.result.deployment_ready = (sim.result.fitness_score > 0.6f);
         
-        snprintf(sim.result.notes, 255, "Simulation complete. Ticks: %u, Fitness: %.2f",
+        snprintf(sim.result.notes, sizeof(sim.result.notes), "Simulation complete. Ticks: %u, Fitness: %.2f",
                  sim.ticks_elapsed, sim.result.fitness_score);
-        sim.result.notes[255] = '\0';
     }
 }
 
-float SimulationChamber::calculate_fitness(const float pillar_avg[NUM_PILLARS]) const {
+float SimulationChamber::calculate_fitness(const float pillar_avg[NumPillars]) const {
     float fitness = 0.0f;
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         fitness += pillar_avg[i];
     }
-    return fitness / NUM_PILLARS;
+    return fitness / NumPillars;
 }

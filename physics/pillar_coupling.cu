@@ -1,15 +1,13 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <math.h>
-#include "../kernels/pillars_compute.cu"
-#include "../kernels/skelly_compute.cu"
+#include "../kernels/pillars_shared.cuh"
+#include "../kernels/skelly_shared.cuh"
 
 // Pillar → Skelly coupling: How Pillar State Vector drives Skelly physics
 // From FULL_ARCHITECTURE.md: "Pillar Vector → drives → Skelly System → produces → Physics"
 
-// Convert fp20_t raw int64 to float for CUDA kernels
-#define FROM_FP20(x) ((float)(x).raw() / 1048576.0f)
-#define TO_FP20(f)   ((int64_t)((f) * 1048576.0f))
+// CUDA PillarStateVector stores floats directly — no conversion needed from fp20_t
 
 // Coupling constants (scaled integer compatible)
 #define COUPLING_FORCE_TO_MUSCLE_ACTIVATION  0.001f
@@ -19,7 +17,7 @@
 #define COUPLING_HARM_TO_FRACTURE_PROB       0.02f
 
 // Pillar-driven muscle activation
-__global__ void pillar_coupling_muscles_kernel(Entity* entities, uint32_t entity_count,
+__global__ void pillar_coupling_muscles_kernel(GPUEntity* entities, uint32_t entity_count,
                                                 SkellyInstance* instances, uint32_t instance_count,
                                                 MuscleGroup* muscles, BoneSegment* segments) {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -29,18 +27,18 @@ __global__ void pillar_coupling_muscles_kernel(Entity* entities, uint32_t entity
     if (inst.entity_id == 0 || inst.entity_id > entity_count) return;
 
     // Load entity data from entities array
-    Entity ent = entities[inst.entity_id - 1];
+    GPUEntity ent = entities[inst.entity_id - 1];
 
     // Apply force-based activation to all muscles in instance
     for (uint32_t m = inst.muscle_start; m < inst.muscle_start + inst.muscle_count; m++) {
         MuscleGroup& mg = muscles[m];
         // Force pillar drives muscle activation
-        mg.activation = FROM_FP20(ent.pillars[PILLAR_FORCE]);
+        mg.activation = ent.pillars[Force];
     }
 }
 
 // Pillar-driven bone flexibility (Willpower affects flexibility)
-__global__ void pillar_coupling_bones_kernel(Entity* entities, uint32_t entity_count,
+__global__ void pillar_coupling_bones_kernel(GPUEntity* entities, uint32_t entity_count,
                                               SkellyInstance* instances, uint32_t instance_count,
                                               BoneSegment* segments) {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -50,19 +48,19 @@ __global__ void pillar_coupling_bones_kernel(Entity* entities, uint32_t entity_c
     if (inst.entity_id == 0 || inst.entity_id > entity_count) return;
 
     // Load entity data
-    Entity ent = entities[inst.entity_id - 1];
+    GPUEntity ent = entities[inst.entity_id - 1];
 
     // Willpower increases flexibility (adaptability)
     // Resistance increases break threshold (durability)
     for (uint32_t s = inst.segment_start; s < inst.segment_start + inst.segment_count; s++) {
         BoneSegment& seg = segments[s];
-        seg.flexibility = FROM_FP20(ent.pillars[PILLAR_WILLPOWER]);
-        seg.break_threshold = FROM_FP20(ent.pillars[PILLAR_RESISTANCE]) * 200.0f;
+        seg.flexibility = ent.pillars[Willpower];
+        seg.break_threshold = ent.pillars[Resistance] * 200.0f;
     }
 }
 
 // Pillar-driven organ activity
-__global__ void pillar_coupling_organs_kernel(Entity* entities, uint32_t entity_count,
+__global__ void pillar_coupling_organs_kernel(GPUEntity* entities, uint32_t entity_count,
                                                SkellyInstance* instances, uint32_t instance_count,
                                                Organ* organs) {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -72,22 +70,22 @@ __global__ void pillar_coupling_organs_kernel(Entity* entities, uint32_t entity_
     if (inst.entity_id == 0 || inst.entity_id > entity_count) return;
 
     // Load entity data
-    Entity ent = entities[inst.entity_id - 1];
+    GPUEntity ent = entities[inst.entity_id - 1];
 
     // Force pillar drives power_plant output
     // Warmth pillar drives factory/repair rate
     for (uint32_t o = inst.organ_start; o < inst.organ_start + inst.organ_count; o++) {
         Organ& organ = organs[o];
         if (organ.type == 2) {  // power_plant
-            organ.active_state = FROM_FP20(ent.pillars[PILLAR_FORCE]);
+            organ.active_state = ent.pillars[Force];
         } else if (organ.type == 3) {  // factory
-            organ.active_state = FROM_FP20(ent.pillars[PILLAR_WARMTH]);
+            organ.active_state = ent.pillars[Warmth];
         }
     }
 }
 
 // Harm pillar causes fracture (transformation/disruption)
-__global__ void pillar_coupling_harm_kernel(Entity* entities, uint32_t entity_count,
+__global__ void pillar_coupling_harm_kernel(GPUEntity* entities, uint32_t entity_count,
                                              SkellyInstance* instances, uint32_t instance_count,
                                              BoneSegment* segments) {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -97,10 +95,10 @@ __global__ void pillar_coupling_harm_kernel(Entity* entities, uint32_t entity_co
     if (inst.entity_id == 0 || inst.entity_id > entity_count) return;
 
     // Load entity data
-    Entity ent = entities[inst.entity_id - 1];
+    GPUEntity ent = entities[inst.entity_id - 1];
 
     // Get Harm pillar value
-    float harm = FROM_FP20(ent.pillars[PILLAR_HARM]);
+    float harm = ent.pillars[Harm];
     
     if (harm > 0.7f) {
         // High Harm can cause fractures
@@ -117,7 +115,7 @@ __global__ void pillar_coupling_harm_kernel(Entity* entities, uint32_t entity_co
 }
 
 // Integrity pillar repairs fractures
-__global__ void pillar_coupling_repair_kernel(Entity* entities, uint32_t entity_count,
+__global__ void pillar_coupling_repair_kernel(GPUEntity* entities, uint32_t entity_count,
                                                 SkellyInstance* instances, uint32_t instance_count,
                                                 BoneSegment* segments) {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -127,10 +125,10 @@ __global__ void pillar_coupling_repair_kernel(Entity* entities, uint32_t entity_
     if (inst.entity_id == 0 || inst.entity_id > entity_count) return;
 
     // Load entity data
-    Entity ent = entities[inst.entity_id - 1];
+    GPUEntity ent = entities[inst.entity_id - 1];
 
     // Get Integrity pillar value
-    float integrity = FROM_FP20(ent.pillars[PILLAR_INTEGRITY]);
+    float integrity = ent.pillars[Integrity];
     
     if (integrity > 0.6f) {
         // High Integrity repairs fractures
@@ -144,7 +142,7 @@ __global__ void pillar_coupling_repair_kernel(Entity* entities, uint32_t entity_
 }
 
 // Master coupling function: runs all coupling kernels
-__host__ void pillar_coupling_step(Entity* d_entities, uint32_t entity_count,
+__host__ void pillar_coupling_step(GPUEntity* d_entities, uint32_t entity_count,
                                      SkellyInstance* d_instances, uint32_t instance_count,
                                      MuscleGroup* d_muscles, BoneSegment* d_segments,
                                      Organ* d_organs) {

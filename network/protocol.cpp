@@ -48,24 +48,24 @@ bool unpack_render_packet(const RenderPacket* pkt, float* out_svo_data, uint32_t
 }
 
 // Feedback message
-void pack_feedback_msg(FeedbackMsg* msg, uint32_t entity_id, float pillars[NUM_PILLARS]) {
+void pack_feedback_msg(FeedbackMsg* msg, uint32_t entity_id, float pillars[NumPillars]) {
     if (!msg) return;
     init_header(&msg->header, MSG_FEEDBACK, sizeof(FeedbackMsg));
     msg->entity_id = entity_id;
     if (pillars) {
-        memcpy(msg->pillar_delta, pillars, sizeof(float) * NUM_PILLARS);
+        memcpy(msg->pillar_delta, pillars, sizeof(float) * NumPillars);
     }
 }
 
 // Federation message
 void pack_federation_msg(FederationMsg* msg, uint32_t src_server, uint32_t dst_server, 
-                          float pillars[NUM_PILLARS]) {
+                          float pillars[NumPillars]) {
     if (!msg) return;
     init_header(&msg->header, MSG_FEDERATION, sizeof(FederationMsg));
     msg->source_server = src_server;
     msg->target_server = dst_server;
     if (pillars) {
-        memcpy(msg->pillar_delta, pillars, sizeof(float) * NUM_PILLARS);
+        memcpy(msg->pillar_delta, pillars, sizeof(float) * NumPillars);
     }
 }
 

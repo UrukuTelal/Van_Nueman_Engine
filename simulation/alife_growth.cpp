@@ -1,6 +1,7 @@
 // alife_growth.cpp - ALife organism spawning implementation
 
 #include "alife_growth.h"
+#include "../scale/SemanticProjection.h"
 #include <algorithm>
 #include <cmath>
 
@@ -39,10 +40,24 @@ void ALifeGrowthManager::link_growth_system(GrowthSystem* growth_system) {
 void ALifeGrowthManager::update(float dt) {
     spawn_organisms_from_grid();
     
+    apply_constraint_recovery(dt);
+    
     for (uint32_t organism_id : active_organisms_) {
         if (auto* creature = growth_system_->get_creature(organism_id)) {
             if (creature->is_alive()) {
                 creature->step(dt);
+                
+                // Apply constraint pull to creature's pillar state
+                float constraint = get_organism_constraint(organism_id);
+                if (constraint > 0.01f) {
+                    PillarStateVector psv;
+                    psv.fill(vn::fp20_t(0.5f));
+                    creature->get_pillar_state(psv);
+                    ConstraintState cs;
+                    cs.init(constraint);
+                    cs.apply_to_pillars(psv);
+                    creature->set_pillar_state(psv);
+                }
             }
         }
     }
@@ -117,9 +132,9 @@ SpawnResult ALifeGrowthManager::try_spawn_at(size_t grid_x, size_t y, size_t z) 
     creature->apply_pillar_influence(pillars, 0.5f);
     
     PillarStateVector psv;
-    psv.fill(0.5f);
+    psv.fill(vn::fp20_t(0.5f));
     if (pillar_grid_) {
-        for (int i = 0; i < 8 && i < NUM_PILLARS; i++) {
+        for (int i = 0; i < 8 && i < NumPillars; i++) {
             float* pillar_ptrs[] = {
                 pillar_grid_->alignment, pillar_grid_->resonance,
                 pillar_grid_->stability, pillar_grid_->entropy,
@@ -127,7 +142,7 @@ SpawnResult ALifeGrowthManager::try_spawn_at(size_t grid_x, size_t y, size_t z) 
                 pillar_grid_->manifestation, pillar_grid_->dissolution
             };
             if (pillar_ptrs[i]) {
-                psv.pillars[i] = pillar_ptrs[i][idx];
+                psv.pillars[i] = vn::fp20_t(pillar_ptrs[i][idx]);
             }
         }
     }
@@ -156,16 +171,16 @@ void ALifeGrowthManager::update_organism_from_cell(uint32_t entity_id, size_t ce
     if (ca_grid_->flags[cell_index].in_dream) {
         float lucid = ca_grid_->dream_state[cell_index] / 255.0f;
         PillarStateVector dream_pillars;
-        dream_pillars.fill(0.5f + lucid * 0.5f);
-        dream_pillars[PILLAR_MEMORY] = lucid;
+        dream_pillars.fill(vn::fp20_t(0.5f + lucid * 0.5f));
+        dream_pillars[Memory] = vn::fp20_t(lucid);
         creature->apply_pillar_influence(dream_pillars, lucid * 0.2f);
     }
     
     if (ca_grid_->flags[cell_index].in_shadow) {
         float shadow = ca_grid_->shadow_state[cell_index] / 255.0f;
         PillarStateVector shadow_pillars;
-        shadow_pillars.fill(0.5f - shadow * 0.3f);
-        shadow_pillars[PILLAR_DISTORTION] = shadow;
+        shadow_pillars.fill(vn::fp20_t(0.5f - shadow * 0.3f));
+        shadow_pillars[Distortion] = vn::fp20_t(shadow);
         creature->apply_pillar_influence(shadow_pillars, shadow * 0.15f);
     }
 }
@@ -186,7 +201,7 @@ bool ALifeGrowthManager::is_valid_spawn_location(size_t x, size_t y, size_t z) c
 
 PillarStateVector ALifeGrowthManager::extract_pillar_state(size_t cell_index) const {
     PillarStateVector pillars;
-    pillars.fill(0.5f);
+    pillars.fill(vn::fp20_t(0.5f));
     
     if (!pillar_grid_) return pillars;
     
@@ -197,9 +212,9 @@ PillarStateVector ALifeGrowthManager::extract_pillar_state(size_t cell_index) co
         pillar_grid_->manifestation, pillar_grid_->dissolution
     };
     
-    for (int i = 0; i < 8 && i < NUM_PILLARS; i++) {
+    for (int i = 0; i < 8 && i < NumPillars; i++) {
         if (pillar_ptrs[i]) {
-            pillars.pillars[i] = pillar_ptrs[i][cell_index];
+            pillars.pillars[i] = vn::fp20_t(pillar_ptrs[i][cell_index]);
         }
     }
     
@@ -217,6 +232,11 @@ bool ALifeGrowthManager::can_spawn(size_t x, size_t y, size_t z) const {
     
     if (ca_grid_->energy[idx] < config_.min_energy_threshold) return false;
     if (ca_grid_->matter[idx] < config_.min_matter_threshold) return false;
+    
+    if (config_.respect_pillar_constraints) {
+        float constraint = calculate_cell_constraint(idx);
+        if (constraint > CONSTRAINT_MED) return false;
+    }
     
     return true;
 }
@@ -255,7 +275,56 @@ float ALifeGrowthManager::calculate_spawn_priority(size_t cell_index) const {
     float priority = (energy_factor * 0.4f + matter_factor * 0.3f + 
                       life_factor * 0.2f + pillar_influence * 0.1f);
     
+    if (config_.respect_pillar_constraints) {
+        float constraint = calculate_cell_constraint(cell_index);
+        float constraint_penalty = 1.0f - constraint;
+        priority *= constraint_penalty;
+    }
+    
     return std::fmax(0.0f, std::fmin(1.0f, priority));
+}
+
+// ── Constraint Helper Methods ─────────────────────────────────
+
+float ALifeGrowthManager::get_organism_constraint(uint32_t entity_id) const {
+    return world_constraint_.level;
+}
+
+void ALifeGrowthManager::set_organism_constraint(uint32_t entity_id, float level) {
+    world_constraint_.init(level);
+}
+
+void ALifeGrowthManager::apply_constraint_recovery(float dt) {
+    if (world_constraint_.level <= 0.0f) return;
+    
+    for (uint32_t organism_id : active_organisms_) {
+        if (auto* creature = growth_system_->get_creature(organism_id)) {
+            if (creature->is_alive()) {
+                PillarStateVector psv;
+                psv.fill(vn::fp20_t(0.5f));
+                creature->get_pillar_state(psv);
+                world_constraint_.recover(psv, dt);
+                creature->set_pillar_state(psv);
+            }
+        }
+    }
+}
+
+float ALifeGrowthManager::calculate_cell_constraint(size_t cell_index) const {
+    if (!pillar_grid_) return 0.0f;
+    
+    float depth_val = 0.5f;
+    float harmony_val = 0.5f;
+    float pressure_val = 0.0f;
+    
+    if (pillar_grid_->resonance) depth_val = pillar_grid_->resonance[cell_index];
+    if (pillar_grid_->pressure) pressure_val = pillar_grid_->pressure[cell_index];
+    
+    // Low Depth + high pressure = high constraint
+    float depth_factor = 1.0f - depth_val;
+    float constraint = depth_factor * 0.7f + pressure_val * 0.3f;
+    
+    return std::fmax(0.0f, std::fmin(1.0f, constraint));
 }
 
 std::vector<uint32_t> ALifeGrowthManager::get_organism_ids() const {
@@ -339,10 +408,10 @@ void ALifePillarCoupler::apply_pillar_influence_to_grid(const PillarStateVector&
                 size_t idx = x + y * 64 + z * 4096;
                 
                 if (pillar_grid_->alignment) {
-                    pillar_grid_->alignment[idx] += pillar_state[PILLAR_AWARENESS] * falloff * 0.1f;
+                    pillar_grid_->alignment[idx] += pillar_state[Awareness] * falloff * 0.1f;
                 }
                 if (pillar_grid_->coherence) {
-                    pillar_grid_->coherence[idx] += pillar_state[PILLAR_COHESION] * falloff * 0.1f;
+                    pillar_grid_->coherence[idx] += pillar_state[Cohesion] * falloff * 0.1f;
                 }
             }
         }
@@ -370,7 +439,7 @@ void ALifePillarCoupler::set_influence_direction(PillarInfluenceDirection dir) {
 
 PillarStateVector ALifePillarCoupler::sample_pillars_at(size_t x, size_t y, size_t z) const {
     PillarStateVector pillars;
-    pillars.fill(0.5f);
+    pillars.fill(vn::fp20_t(0.5f));
     
     if (!pillar_grid_) return pillars;
     
@@ -383,9 +452,9 @@ PillarStateVector ALifePillarCoupler::sample_pillars_at(size_t x, size_t y, size
         pillar_grid_->manifestation, pillar_grid_->dissolution
     };
     
-    for (int i = 0; i < 8 && i < NUM_PILLARS; i++) {
+    for (int i = 0; i < 8 && i < NumPillars; i++) {
         if (pillar_ptrs[i]) {
-            pillars.pillars[i] = pillar_ptrs[i][idx];
+            pillars.pillars[i] = vn::fp20_t(pillar_ptrs[i][idx]);
         }
     }
     
@@ -397,14 +466,15 @@ void ALifePillarCoupler::write_pillars_at(size_t x, size_t y, size_t z, const Pi
     
     size_t idx = x + y * 64 + z * 4096;
     
-    if (pillar_grid_->alignment) pillar_grid_->alignment[idx] = pillars.pillars[0];
-    if (pillar_grid_->resonance) pillar_grid_->resonance[idx] = pillars.pillars[1];
-    if (pillar_grid_->stability) pillar_grid_->stability[idx] = pillars.pillars[2];
-    if (pillar_grid_->entropy) pillar_grid_->entropy[idx] = pillars.pillars[3];
-    if (pillar_grid_->coherence) pillar_grid_->coherence[idx] = pillars.pillars[4];
-    if (pillar_grid_->flux) pillar_grid_->flux[idx] = pillars.pillars[5];
-    if (pillar_grid_->manifestation) pillar_grid_->manifestation[idx] = pillars.pillars[6];
-    if (pillar_grid_->dissolution) pillar_grid_->dissolution[idx] = pillars.pillars[7];
+    // Map first 8 pillars to ALife grid fields (Layer 4 symbolic projection)
+    if (pillar_grid_->alignment) pillar_grid_->alignment[idx] = pillars.pillars[Awareness];
+    if (pillar_grid_->resonance) pillar_grid_->resonance[idx] = pillars.pillars[Willpower];
+    if (pillar_grid_->stability) pillar_grid_->stability[idx] = pillars.pillars[Force];
+    if (pillar_grid_->entropy) pillar_grid_->entropy[idx] = pillars.pillars[Influence];
+    if (pillar_grid_->coherence) pillar_grid_->coherence[idx] = pillars.pillars[Resistance];
+    if (pillar_grid_->flux) pillar_grid_->flux[idx] = pillars.pillars[Integrity];
+    if (pillar_grid_->manifestation) pillar_grid_->manifestation[idx] = pillars.pillars[Cohesion];
+    if (pillar_grid_->dissolution) pillar_grid_->dissolution[idx] = pillars.pillars[Relation];
 }
 
 ALifeSpawnController::ALifeSpawnController()
@@ -509,9 +579,9 @@ void DreamStateCreatureEffects::apply_dream_effects_to_creature(Creature* creatu
     if (is_effect_enabled(EFFECT_SIZE_PULSE)) apply_size_pulse_effect(creature, dt);
     
     PillarStateVector dream_pillars;
-    dream_pillars.fill(0.5f + dream_intensity_ * 0.5f);
-    dream_pillars[PILLAR_MEMORY] = dream_intensity_;
-    dream_pillars[PILLAR_DISTORTION] = dream_intensity_ * 0.3f;
+    dream_pillars.fill(vn::fp20_t(0.5f + dream_intensity_ * 0.5f));
+    dream_pillars[Memory] = vn::fp20_t(dream_intensity_);
+    dream_pillars[Distortion] = vn::fp20_t(dream_intensity_ * 0.3f);
     creature->apply_pillar_influence(dream_pillars, dt * 0.1f);
 }
 
@@ -580,9 +650,9 @@ void ShadowStateCreatureEffects::apply_shadow_effects_to_creature(Creature* crea
     if (is_effect_enabled(EFFECT_DECAY)) apply_decay_effect(creature, dt);
     
     PillarStateVector shadow_pillars;
-    shadow_pillars.fill(0.5f - shadow_intensity_ * 0.3f);
-    shadow_pillars[PILLAR_HARM] = shadow_intensity_;
-    shadow_pillars[PILLAR_DISTORTION] = shadow_intensity_ * 1.5f;
+    shadow_pillars.fill(vn::fp20_t(0.5f - shadow_intensity_ * 0.3f));
+    shadow_pillars[Harm] = vn::fp20_t(shadow_intensity_);
+    shadow_pillars[Distortion] = vn::fp20_t(shadow_intensity_ * 1.5f);
     creature->apply_pillar_influence(shadow_pillars, dt * 0.15f);
 }
 

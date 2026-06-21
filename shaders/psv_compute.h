@@ -3,13 +3,12 @@
 
 #include <cstdint>
 
-#define NUM_PILLARS 16
 #define MAX_ENTITIES 1024
 #define MAX_DREAM_EPISODES 64
 
 struct EntityPSV {
-    float pillars[NUM_PILLARS];
-    float shadow_patterns[NUM_PILLARS];
+    float pillars[NumPillars];
+    float shadow_patterns[NumPillars];
     float lucid_level;
     float vividness;
     float shadow_emergence;

@@ -133,10 +133,10 @@ CreaturePerceptionResult AgentPerception::perceive_creature(const Creature* crea
     result.is_dreaming = state.is_dreaming;
     result.is_in_shadow = state.in_shadow;
     
-    result.r = state.pillars[PILLAR_AWARENESS];
-    result.g = state.pillars[PILLAR_HARM];
-    result.b = state.pillars[PILLAR_DEPTH];
-    result.a = state.pillars[PILLAR_INTEGRITY];
+    result.r = state.pillars[Awareness];
+    result.g = state.pillars[Harm];
+    result.b = state.pillars[Depth];
+    result.a = state.pillars[Integrity];
     
     for (int i = 0; i < 8; i++) {
         result.creature_type_score[i] = state.pillars[i];
@@ -179,7 +179,7 @@ float AgentPerception::calculate_threat_level(const CreaturePerceptionResult& pe
                                                const PillarStateVector& agent_pillars) {
     float threat = 0.0f;
     
-    float awareness = (agent_pillars[PILLAR_AWARENESS] + agent_pillars[PILLAR_WILLPOWER]) * 0.5f;
+    float awareness = (agent_pillars[Awareness] + agent_pillars[Willpower]) * 0.5f;
     
     if (perception.is_dreaming) {
         threat += THREAT_WEIGHT_DREAMING;

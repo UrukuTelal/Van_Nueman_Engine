@@ -1,7 +1,9 @@
 #include "llm_bridge.h"
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 #include <cstring>
+#include <cmath>
 
 #ifdef HAS_CURL
 #include <curl/curl.h>
@@ -16,6 +18,28 @@ static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdat
     return total;
 }
 #endif
+
+// ── Bloch Sphere Utilities ────────────────────────────────────────────
+
+inline float bloch_to_z(float theta) {
+    // Z-projection = (cos(theta) + 1) / 2
+    return (std::cos(theta) + 1.0f) * 0.5f;
+}
+
+inline float z_to_bloch(float value) {
+    float clamped = (value < 0.0f) ? 0.0f : (value > 1.0f) ? 1.0f : value;
+    return std::acos(2.0f * clamped - 1.0f);
+}
+
+inline float get_coherence(float theta) {
+    // |cos(theta)| as coherence percentage
+    return std::abs(std::cos(theta));
+}
+
+inline float theta_to_phi(float) {
+    // Default phi = 0 for scalar inputs
+    return 0.0f;
+}
 
 LLMBridge::LLMBridge() : ollama_url_(DEFAULT_OLLAMA_URL), curl_handle_(nullptr) {
 }
@@ -53,19 +77,38 @@ LLMResponse LLMBridge::query(const LLMRequest& request) {
         return response;
     }
     
-    // Build JSON payload
+    // Build JSON payload with manual escaping
+    auto json_escape = [](const std::string& s) -> std::string {
+        std::string out;
+        out.reserve(s.size() + 8);
+        for (char c : s) {
+            switch (c) {
+                case '"': out += "\\\""; break;
+                case '\\': out += "\\\\"; break;
+                case '\n': out += "\\n"; break;
+                case '\r': out += "\\r"; break;
+                case '\t': out += "\\t"; break;
+                default: if (static_cast<unsigned char>(c) < 0x20) break; else out += c;
+            }
+        }
+        return out;
+    };
+    std::string prompt_text = build_prompt(request.current_state, request.prompt);
     std::stringstream json_payload;
-    json_payload << R"({"model":")" << request.model << R"(","prompt":")" 
-                << build_prompt(request.current_state, request.prompt) 
+    json_payload << R"({"model":")" << json_escape(request.model)
+                << R"(","prompt":")" << json_escape(prompt_text)
                 << R"(","stream":false,"options":{"temperature":)" 
                 << request.temperature << R"(,"num_predict":)" << request.max_tokens << "}}";
     
     std::string url = ollama_url_ + std::string("/api/generate");
     std::string response_data;
     
+    std::string payload = json_payload.str();
+    
     CURL* curl = static_cast<CURL*>(curl_handle_);
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_payload.str().c_str());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)payload.size());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_data);
     
@@ -93,18 +136,25 @@ LLMResponse LLMBridge::query(const LLMRequest& request) {
 
 std::string LLMBridge::build_prompt(const PillarVector& state, const std::string& task) {
     std::stringstream prompt;
-    prompt << "Using the Pillar Framework (16-dimensional state vector):\n";
-    prompt << "Current pillar states (0.0-1.0):\n";
+    prompt << "Using the Pillar Framework (16-dimensional Bloch sphere state vector):\n";
+    prompt << "Current pillar states (Bloch sphere):\n";
     const char* pillar_names[] = {
         "Awareness", "Willpower", "Force", "Influence", "Resistance",
         "Integrity", "Cohesion", "Relation", "Presence", "Warmth",
         "Memory", "Attraction", "Harm", "Distortion", "Flux", "Depth"
     };
-    for (int i = 0; i < NUM_PILLARS; i++) {
-        prompt << pillar_names[i] << ": " << state[i] << "\n";
+    for (int i = 0; i < NumPillars; i++) {
+        float theta = state[i];
+        float z = bloch_to_z(theta);
+        float coherence = get_coherence(theta);
+        prompt << pillar_names[i] << ": \u03B8=" << std::fixed << std::setprecision(3) << theta
+               << " \u03C6=0.000"
+               << " Z=" << std::setprecision(3) << z
+               << " coherence=" << std::setprecision(0) << (coherence * 100.0f) << "%\n";
     }
     prompt << "\nTASK: " << task << "\n";
-    prompt << "Respond with updated pillar values in format: P0:0.XX P1:0.XX ... P15:0.XX\n";
+    prompt << "Respond with updated pillar values in format:\n";
+    prompt << "P0:theta:1.047:phi:0.000 P1:theta:1.571:phi:0.000 ... P15:theta:1.571:phi:0.000\n";
     return prompt.str();
 }
 
@@ -121,17 +171,35 @@ bool LLMBridge::parse_response(const std::string& json_response, PillarVector& o
     
     std::string content = json_response.substr(start, end - start);
     
-    // Parse pillar values from content (format: P0:0.XX P1:0.XX ...)
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    // Parse pillar values from content.
+    // Supports two formats:
+    //   Bloch: P0:theta:1.047:phi:0.000
+    //   Scalar: P0:0.XX
+    for (int i = 0; i < NumPillars; i++) {
         std::string search = "P" + std::to_string(i) + ":";
         size_t pos = content.find(search);
         if (pos != std::string::npos) {
             pos += search.length();
-            // Extract float value
-            char* endptr;
-            float val = std::strtof(&content[pos], &endptr);
-            if (val >= 0.0f && val <= 1.0f) {
-                out_state[i] = val;
+            
+            // Check for Bloch format (P0:theta:...)
+            std::string remaining = content.substr(pos);
+            if (remaining.find("theta:") == 0) {
+                // Bloch format: P0:theta:1.047:phi:0.000
+                pos += 6; // skip "theta:"
+                char* endptr;
+                float theta_val = std::strtof(&content[pos], &endptr);
+                if (theta_val >= 0.0f && theta_val <= 3.14159265f) {
+                    out_state[i] = vn::fp20_t(theta_val);
+                }
+                // phi is read but not stored (PillarVector is theta only)
+            } else {
+                // Scalar format: P0:0.XX
+                char* endptr;
+                float val = std::strtof(&content[pos], &endptr);
+                if (val >= 0.0f && val <= 1.0f) {
+                    // Convert scalar [0,1] to theta via acos(2*val - 1)
+                    out_state[i] = vn::fp20_t(z_to_bloch(val));
+                }
             }
         }
     }

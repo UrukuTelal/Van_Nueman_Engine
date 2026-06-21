@@ -10,6 +10,7 @@
 #include "../simulation/cellular_automata.h"
 #include "../biology/creature_system.h"
 #include "../include/Entity.h"
+#include "../include/Constraint.h"
 
 namespace Van_Nueman {
 
@@ -46,6 +47,12 @@ public:
     
     void update_organism_from_cell(uint32_t entity_id, size_t cell_index);
     
+    // ── Constraint Integration ────────────────────────────────
+    float get_organism_constraint(uint32_t entity_id) const;
+    void set_organism_constraint(uint32_t entity_id, float level);
+    void apply_constraint_recovery(float dt);
+    float calculate_cell_constraint(size_t cell_index) const;
+    
     void set_config(const OrganismSpawnConfig& config);
     const OrganismSpawnConfig& get_config() const { return config_; }
     
@@ -63,12 +70,18 @@ private:
     OrganismSpawnConfig config_;
     
     std::vector<uint32_t> active_organisms_;
+    ConstraintState world_constraint_;  // global constraint tracker
     
     static constexpr float DEFAULT_MIN_ENERGY = 10.0f;
     static constexpr float DEFAULT_MIN_MATTER = 5.0f;
     static constexpr float DEFAULT_MIN_HEALTH = 0.3f;
     static constexpr float DEFAULT_SPAWN_RADIUS = 5.0f;
     static constexpr uint32_t DEFAULT_MAX_ORGANISMS = 8;
+    
+    // Constraint thresholds
+    static constexpr float CONSTRAINT_LOW = 0.3f;
+    static constexpr float CONSTRAINT_MED = 0.6f;
+    static constexpr float CONSTRAINT_HIGH = 0.85f;
     
     bool can_spawn(size_t x, size_t y, size_t z) const;
     uint32_t determine_creature_type(size_t cell_index) const;

@@ -28,6 +28,8 @@ enum MessageType : uint8_t {
     MSG_COLLECT_GENETIC = 0x0B, // Collect genetic material
     MSG_TERRAFORM = 0x0C,       // Terraform planet
     MSG_COMBINE_GENETIC = 0x0D, // Combine genetics
+    MSG_FEEDBACK = MSG_SERVER_FEEDBACK,  // Alias for pack functions
+    MSG_FEDERATION = MSG_FEDERATION_MSG, // Alias for pack functions
     MSG_LAST = 0x0D
 };
 
@@ -56,17 +58,19 @@ PACKED(struct RenderPacket {
 });
 
 PACKED(struct FederationMsg {
+    MessageHeader header;
     uint32_t source_server;
     uint32_t target_server;
     uint8_t hop_count;
     float force;
     uint8_t pillar;
+    float pillar_delta[NumPillars];
 });
 
 PACKED(struct FeedbackMsg {
     MessageHeader header;
     uint32_t entity_id;
-    float pillar_delta[NUM_PILLARS];
+    float pillar_delta[NumPillars];
 });
 
 constexpr uint16_t VERSION = 1;
@@ -104,7 +108,7 @@ PACKED(struct LifeformData {
     float x, y, z;
     float energy;
     float fitness;
-    float pillars[NUM_PILLARS];  // 16 pillars
+    float pillars[NumPillars];  // 16 pillars
     uint8_t alive;  // bool
 });
 
@@ -135,7 +139,7 @@ PACKED(struct CombineGeneticRequest {
 
 PACKED(struct GeneticMaterial {
     uint32_t id;
-    float pillars[NUM_PILLARS];
+    float pillars[NumPillars];
     uint32_t source_lifeform_id;
 });
 
@@ -148,7 +152,7 @@ PACKED(struct TerraformResult {
 
 PACKED(struct CombineResult {
     uint32_t new_genetic_id;
-    float new_pillars[NUM_PILLARS];
+    float new_pillars[NumPillars];
     uint8_t viable;
 });
 

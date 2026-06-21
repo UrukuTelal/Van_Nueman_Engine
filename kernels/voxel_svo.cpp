@@ -1,9 +1,52 @@
-// Van Nueman SVO (Sparse Voxel Octree) - vncc C++ Version
-// Compile: vncc -emit-spirv voxel_svo.cpp -o voxel_svo.spv
-//          vncc -emit-llvm voxel_svo.cpp -o voxel_svo.bc
+// Van Nueman SVO (Sparse Voxel Octree) - UGC C++ Version
+// Compile: ugc -o voxel_svo.spv voxel_svo.cpp
+//          ugc -o voxel_svo.bc voxel_svo.cpp
 
+#ifndef UGC_COMPILER
 #include <cstdint>
+#endif
 #include <cmath>
+
+// SPIR-V compatible math builtins (map to GLSL.std.450)
+namespace {
+inline float sqrtf_(float x)  { return __builtin_elementwise_sqrt(x); }
+inline float fabsf_(float x)  { return __builtin_elementwise_abs(x); }
+inline float fmaxf_(float a, float b) { return __builtin_elementwise_max(a, b); }
+inline float fminf_(float a, float b) { return __builtin_elementwise_min(a, b); }
+}
+
+// Float3 operations (vncc maps to SPIR-V/PTX float3)
+struct float3 { float x, y, z; };
+
+float3 make_float3(float x, float y, float z) {
+    float3 r = {x, y, z};
+    return r;
+}
+
+float3 float3_add(float3 a, float3 b) {
+    return make_float3(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+float3 float3_sub(float3 a, float3 b) {
+    return make_float3(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+float3 float3_mul_scalar(float3 a, float s) {
+    return make_float3(a.x * s, a.y * s, a.z * s);
+}
+
+float float3_dot(float3 a, float3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+float float3_length(float3 v) {
+    return sqrtf_(float3_dot(v, v));
+}
+
+float3 float3_normalize(float3 v) {
+    float l = float3_length(v);
+    return l > 0 ? float3_mul_scalar(v, 1.0f / l) : v;
+}
 
 #define SVO_CHUNK_SIZE 64
 #define SVO_MAX_LODS 8
@@ -78,22 +121,146 @@ int get_octant(int px, int py, int pz, int cx, int cy, int cz) {
 // Octohedron math: project position onto octohedral surface
 float3 octohedron_project(float3 pos, float size) {
     float3 n = float3_normalize(pos);
-    float3 abs_n = make_float3(fabsf(n.x), fabsf(n.y), fabsf(n.z));
-    float max_comp = fmaxf(abs_n.x, fmaxf(abs_n.y, abs_n.z));
+    float3 abs_n = make_float3(fabsf_(n.x), fabsf_(n.y), fabsf_(n.z));
+    float max_comp = fmaxf_(abs_n.x, fmaxf_(abs_n.y, abs_n.z));
     if (max_comp > 0) {
         n.x /= max_comp; n.y /= max_comp; n.z /= max_comp;
     }
     return float3_mul_scalar(n, size);
 }
 
+// ---------------------------------------------------------------------------
+// Procedural density evaluation (sphere + octahedron inside each chunk)
+// ---------------------------------------------------------------------------
+
+// Evaluate density at a single world-space point.
+// Returns: -1 = empty, 0 = MAT_OCTAHEDRON, 1 = MAT_CUBE, 2 = MAT_POLYHEDRA
+static int eval_density(float px, float py, float pz,
+                        float chunk_ox, float chunk_oy, float chunk_oz) {
+    float lx = px - chunk_ox;
+    float ly = py - chunk_oy;
+    float lz = pz - chunk_oz;
+    float half = (float)SVO_CHUNK_SIZE * 0.5f;
+    float3 local = make_float3(lx - half, ly - half, lz - half);
+
+    float sphere_dist = float3_length(local);
+    float sphere_radius = half * 0.35f;
+    float oct_dist = fabsf_(local.x) + fabsf_(local.y) + fabsf_(local.z);
+    float oct_size = half * 0.65f;
+
+    if (sphere_dist < sphere_radius)
+        return MAT_OCTAHEDRON;
+    if (oct_dist < oct_size && sphere_dist < half * 0.9f)
+        return MAT_CUBE;
+    return -1;
+}
+
+// Classify a sub-volume: -1 empty, -2 mixed, 0-2 uniform material
+static int eval_density_volume(float3 center, float half_size,
+                                float chunk_ox, float chunk_oy, float chunk_oz) {
+    int first_mat = -1;
+    int has_empty = 0;
+
+    for (int i = 0; i < 8; i++) {
+        float sx = (i & 1) ? half_size : -half_size;
+        float sy = (i & 2) ? half_size : -half_size;
+        float sz = (i & 4) ? half_size : -half_size;
+
+        int m = eval_density(center.x + sx, center.y + sy, center.z + sz,
+                             chunk_ox, chunk_oy, chunk_oz);
+        if (m < 0)
+            has_empty = 1;
+        else if (first_mat < 0)
+            first_mat = m;
+        else if (first_mat != m)
+            return -2;  // mixed materials
+    }
+
+    int cm = eval_density(center.x, center.y, center.z,
+                          chunk_ox, chunk_oy, chunk_oz);
+    if (cm < 0)
+        has_empty = 1;
+    else if (first_mat < 0)
+        first_mat = cm;
+    else if (first_mat != cm)
+        return -2;
+
+    if (first_mat < 0) return -1;  // all empty
+    if (has_empty)     return -2;  // mixed solid/empty
+    return first_mat;              // uniform
+}
+
+// Recursively build the octree for a sub-volume.
+// Returns: node pool index of the sub-tree root (0 = empty).
+static uint32_t build_subtree(float3 center, float half_size, int depth,
+                              float chunk_ox, float chunk_oy, float chunk_oz) {
+    int dv = eval_density_volume(center, half_size, chunk_ox, chunk_oy, chunk_oz);
+    if (dv < 0 && depth < SVO_MAX_LODS) {
+        // Mixed (-2) and not at max depth → subdivide.
+        // Fully empty (-1) at any depth → stop (return 0).
+        // Mix at leaf depth → fall through to create leaf.
+    }
+    if (dv < 0 && dv != -2) return 0;          // fully empty
+    if (dv >= 0 || depth >= SVO_MAX_LODS) {    // uniform solid or at leaf depth
+        uint32_t idx = svo_alloc_node();
+        if (idx == 0) return 0;
+        uint8_t mat = (uint8_t)((dv >= 0) ? dv : MAT_POLYHEDRA);
+        g_node_pool[idx].voxel.material = mat;
+        g_node_pool[idx].voxel.r = mat == MAT_OCTAHEDRON ? 200
+                                  : mat == MAT_CUBE       ? 100 : 150;
+        g_node_pool[idx].voxel.g = mat == MAT_OCTAHEDRON ? 100
+                                  : mat == MAT_CUBE       ? 200 : 100;
+        g_node_pool[idx].voxel.b = mat == MAT_OCTAHEDRON ? 100
+                                  : mat == MAT_CUBE       ? 100 : 200;
+        g_node_pool[idx].voxel.a = 255;
+        g_node_pool[idx].voxel.lod_level = (uint16_t)depth;
+        return idx;
+    }
+
+    // dv == -2 (mixed): subdivide into up to 8 children.
+    uint32_t node_idx = svo_alloc_node();
+    if (node_idx == 0) return 0;
+    SVO_Node* node = &g_node_pool[node_idx];
+    node->valid_mask = 0;
+
+    float child_half = half_size * 0.5f;
+    for (int octant = 0; octant < 8; octant++) {
+        float ox = (octant & 1) ? child_half : -child_half;
+        float oy = (octant & 2) ? child_half : -child_half;
+        float oz = (octant & 4) ? child_half : -child_half;
+        float3 cc = make_float3(center.x + ox, center.y + oy, center.z + oz);
+
+        uint32_t ci = build_subtree(cc, child_half, depth + 1,
+                                     chunk_ox, chunk_oy, chunk_oz);
+        if (ci != 0) {
+            node->children[octant] = ci;
+            node->valid_mask |= (uint8_t)(1 << octant);
+        }
+    }
+
+    return node_idx;
+}
+
 // Build SVO from dirty chunks (called per chunk)
 void svo_build(SVO_Chunk* chunks, uint32_t num_chunks, uint32_t* dirty_voxels) {
+    (void)dirty_voxels;
     for (uint32_t chunk_idx = 0; chunk_idx < num_chunks; chunk_idx++) {
         if (!chunks[chunk_idx].dirty) continue;
 
         SVO_Chunk& chunk = chunks[chunk_idx];
-        // Simple rebuild: traverse and update nodes
-        chunk.dirty = 0;
+
+        float chunk_ox = (float)(chunk.x * SVO_CHUNK_SIZE);
+        float chunk_oy = (float)(chunk.y * SVO_CHUNK_SIZE);
+        float chunk_oz = (float)(chunk.z * SVO_CHUNK_SIZE);
+        float half = (float)SVO_CHUNK_SIZE * 0.5f;
+        float3 center = make_float3(chunk_ox + half, chunk_oy + half, chunk_oz + half);
+
+        uint32_t start_used = g_node_pool_used;
+        uint32_t root_idx = build_subtree(center, half, 0,
+                                           chunk_ox, chunk_oy, chunk_oz);
+        chunk.nodes_offset = root_idx;
+        chunk.node_count   = g_node_pool_used - start_used;
+        chunk.dirty        = 0;
     }
 }
 
@@ -120,14 +287,22 @@ float svo_ray_intersect(SVO_Node* nodes, uint32_t node_idx,
                                   1.0f / (ray_dir.y + 1e-8f),
                                   1.0f / (ray_dir.z + 1e-8f));
 
-    float3 t1 = float3_mul_scalar(float3_sub(box_min, ray_origin), inv_dir.x);
-    float3 t2 = float3_mul_scalar(float3_sub(box_max, ray_origin), inv_dir.x);
+    float3 t1 = make_float3(
+        (box_min.x - ray_origin.x) * inv_dir.x,
+        (box_min.y - ray_origin.y) * inv_dir.y,
+        (box_min.z - ray_origin.z) * inv_dir.z
+    );
+    float3 t2 = make_float3(
+        (box_max.x - ray_origin.x) * inv_dir.x,
+        (box_max.y - ray_origin.y) * inv_dir.y,
+        (box_max.z - ray_origin.z) * inv_dir.z
+    );
 
-    float3 t_min_v = make_float3(fminf(t1.x, t2.x), fminf(t1.y, t2.y), fminf(t1.z, t2.z));
-    float3 t_max_v = make_float3(fmaxf(t1.x, t2.x), fmaxf(t1.y, t2.y), fmaxf(t1.z, t2.z));
+    float3 t_min_v = make_float3(fminf_(t1.x, t2.x), fminf_(t1.y, t2.y), fminf_(t1.z, t2.z));
+    float3 t_max_v = make_float3(fmaxf_(t1.x, t2.x), fmaxf_(t1.y, t2.y), fmaxf_(t1.z, t2.z));
 
-    t_min = fmaxf(fmaxf(t_min_v.x, t_min_v.y), t_min_v.z);
-    t_max = fminf(fminf(t_max_v.x, t_max_v.y), t_max_v.z);
+    t_min = fmaxf_(fmaxf_(t_min_v.x, t_min_v.y), t_min_v.z);
+    t_max = fminf_(fminf_(t_max_v.x, t_max_v.y), t_max_v.z);
 
     if (t_min > t_max || t_max < 0) return 0.0f;
 
@@ -138,7 +313,7 @@ float svo_ray_intersect(SVO_Node* nodes, uint32_t node_idx,
     float3 center = float3_mul_scalar(float3_add(box_min, box_max), 0.5f);
     float3 local = float3_sub(hit, center);
 
-    float3 abs_local = make_float3(fabsf(local.x), fabsf(local.y), fabsf(local.z));
+    float3 abs_local = make_float3(fabsf_(local.x), fabsf_(local.y), fabsf_(local.z));
     if (abs_local.x >= abs_local.y && abs_local.x >= abs_local.z)
         *normal_out = make_float3(local.x > 0 ? 1 : -1, 0, 0);
     else if (abs_local.y >= abs_local.x && abs_local.y >= abs_local.z)

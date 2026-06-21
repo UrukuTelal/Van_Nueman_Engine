@@ -3,11 +3,11 @@
 #include <ctime>
 #include <cstdio>
 
-uint32_t bob_agent_login(const char* player_name, const float pillars[NUM_PILLARS]) {
+uint32_t bob_agent_login(const char* player_name, const float pillars[NumPillars]) {
     BobAgent agent;
     agent.uid = (uint32_t)time(NULL);
     snprintf(agent.name, sizeof(agent.name), "%s", player_name);
-    for(int i = 0; i < NUM_PILLARS; i++) agent.pillars[i] = pillars[i];
+    for(int i = 0; i < NumPillars; i++) agent.pillars[i] = pillars[i];
     agent.energy = 100.0f;
     agent.logged_in = true;
     

@@ -27,6 +27,8 @@ struct FractalAgent {
 class FractalSpawner {
 public:
     FractalSpawner();
+    FractalSpawner(const FractalSpawner&) = delete;
+    FractalSpawner& operator=(const FractalSpawner&) = delete;
     ~FractalSpawner();
     
     // Spawn fractal generation (recursive doubling)

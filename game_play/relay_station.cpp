@@ -2,6 +2,7 @@
 // Build relay stations to help other players navigate.
 
 #include "relay_station.h"
+#include "../scale/SemanticProjection.h"
 #include <ctime>
 #include <cmath>
 #include <cstdlib>
@@ -12,7 +13,7 @@ RelayStationManager::RelayStationManager(uint32_t player_id) :
 
 uint32_t RelayStationManager::build_station(float x, float y, float z,
                                                uint32_t star_system_id,
-                                               const float pillar_template[NUM_PILLARS]) {
+                                               const float pillar_template[NumPillars]) {
     RelayStation station;
     
     // Set position and system
@@ -23,7 +24,7 @@ uint32_t RelayStationManager::build_station(float x, float y, float z,
     station.owner_player_id = player_id_;
     
     // Copy pillar template as baseline
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         station.baseline_pillars[i] = pillar_template[i];
     }
     
@@ -37,10 +38,10 @@ uint32_t RelayStationManager::build_station(float x, float y, float z,
         }
     }
     
-    // Initialize station properties
+    // Initialize station properties (CivilizationalProjection Layer 3)
     station.signal_strength = calculate_signal_strength(pillar_template);
-    station.coverage_radius = 5.0f + pillar_template[8] * 15.0f;  // Presence affects range
-    station.max_users = static_cast<uint32_t>(2 + pillar_template[6] * 18); // Cohesion affects capacity
+    station.coverage_radius = 5.0f + pillar_template[Presence] * 15.0f;  // presence → range
+    station.max_users = static_cast<uint32_t>(2 + pillar_template[Cohesion] * 18); // cohesion → capacity
     station.current_users = 0;
     station.is_public = true;
     station.is_active = true;
@@ -143,7 +144,7 @@ bool RelayStationManager::are_stations_identical(const RelayStation& a, const Re
     if (fabs(a.pos_y - b.pos_y) > 0.001f) return false;
     if (fabs(a.pos_z - b.pos_z) > 0.001f) return false;
     
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         if (fabs(a.baseline_pillars[i] - b.baseline_pillars[i]) > 0.001f) {
             return false;
         }
@@ -151,17 +152,17 @@ bool RelayStationManager::are_stations_identical(const RelayStation& a, const Re
     return true;
 }
 
-float RelayStationManager::calculate_signal_strength(const float pillars[NUM_PILLARS]) const {
-    // Signal strength based on Presence, Influence, and Integrity pillars
-    float presence = pillars[8];    // PILLAR_PRESENCE
-    float influence = pillars[3];   // PILLAR_INFLUENCE
-    float integrity = pillars[5];    // PILLAR_INTEGRITY
+float RelayStationManager::calculate_signal_strength(const float pillars[NumPillars]) const {
+    // CivilizationalProjection: presence → cultural_influence, integrity → legal_integrity
+    float presence = pillars[Presence];
+    float influence = pillars[Influence];
+    float integrity = pillars[Integrity];
     
     return std::min(1.0f, (presence * 0.5f + influence * 0.3f + integrity * 0.2f));
 }
 
 uint32_t RelayStationManager::compute_station_id(float x, float y, float z,
-                                                   const float pillars[NUM_PILLARS]) const {
+                                                   const float pillars[NumPillars]) const {
     // FNV-1a hash of position + pillar values
     uint32_t hash = 2166136261u;
     
@@ -175,7 +176,7 @@ uint32_t RelayStationManager::compute_station_id(float x, float y, float z,
     hash ^= bits; hash *= 16777619u;
     
     // Hash pillars
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         memcpy(&bits, &pillars[i], sizeof(float));
         hash ^= bits;
         hash *= 16777619u;

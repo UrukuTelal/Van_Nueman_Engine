@@ -25,8 +25,8 @@ struct NeuroevolutionPopulationImpl {
         std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
 
         for (auto& ind : individuals) {
-            for (int i = 0; i < NUM_PILLARS; i++) {
-                for (int j = 0; j < NUM_PILLARS; j++) {
+            for (int i = 0; i < NumPillars; i++) {
+                for (int j = 0; j < NumPillars; j++) {
                     ind.weights[i][j] = dis(gen);
                 }
             }
@@ -38,8 +38,8 @@ struct NeuroevolutionPopulationImpl {
     void evaluate_fitness() {
         for (auto& ind : individuals) {
             float sum = 0.0f;
-            for (int i = 0; i < NUM_PILLARS; i++) {
-                for (int j = 0; j < NUM_PILLARS; j++) {
+            for (int i = 0; i < NumPillars; i++) {
+                for (int j = 0; j < NumPillars; j++) {
                     sum += fabsf(ind.weights[i][j]);
                 }
             }
@@ -61,8 +61,8 @@ struct NeuroevolutionPopulationImpl {
     }
 
     void apply_to_interaction_matrix(const Individual& ind) {
-        for (int i = 0; i < NUM_PILLARS; i++) {
-            for (int j = 0; j < NUM_PILLARS; j++) {
+        for (int i = 0; i < NumPillars; i++) {
+            for (int j = 0; j < NumPillars; j++) {
                 // Would copy to device memory
             }
         }
@@ -87,13 +87,13 @@ private:
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_real_distribution<float> dis(-0.1f, 0.1f);
-        std::uniform_int_distribution<> pillar_dis(0, NUM_PILLARS - 1);
+        std::uniform_int_distribution<> pillar_dis(0, NumPillars - 1);
 
         for (uint32_t i = 0; i < population_size; i += 2) {
             if (i + 1 >= population_size) break;
             int cp = pillar_dis(gen);
-            for (int p = cp; p < NUM_PILLARS; p++) {
-                for (int q = 0; q < NUM_PILLARS; q++) {
+            for (int p = cp; p < NumPillars; p++) {
+                for (int q = 0; q < NumPillars; q++) {
                     float temp = pop[i].weights[p][q];
                     pop[i].weights[p][q] = pop[i+1].weights[p][q];
                     pop[i+1].weights[p][q] = temp;

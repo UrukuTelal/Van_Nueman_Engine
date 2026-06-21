@@ -23,7 +23,7 @@ void draw_pillar_gauge(const char* name, float value, const ImVec4& color) {
     ImGui::PopStyleColor();
 }
 
-void render_main_menu(MainMenuState& state, const float pillar_values[NUM_PILLARS]) {
+void render_main_menu(MainMenuState& state, const float pillar_values[NumPillars]) {
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(450, 600), ImGuiCond_Always);
     ImGui::Begin("Van Nueman - Main Menu", nullptr, ImGuiWindowFlags_NoCollapse);
@@ -67,7 +67,7 @@ void render_main_menu(MainMenuState& state, const float pillar_values[NUM_PILLAR
             ImVec4(0.9f, 0.1f, 0.1f, 1.0f), ImVec4(0.6f, 0.6f, 0.6f, 0.5f)
         };
         
-        for (int i = 0; i < NUM_PILLARS; i++) {
+        for (int i = 0; i < NumPillars; i++) {
             ImVec4 color = pillar_colors[i];
             color.w = pillar_values[i];
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);

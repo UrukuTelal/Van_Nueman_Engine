@@ -3,9 +3,14 @@
 #include <cstring>
 
 void encode_message(const char* message, float* coeffs) {
-    int len = strlen(message);
+    if (!message || !coeffs) return;
+    int len = static_cast<int>(strlen(message));
+    if (len > WHT_N) len = WHT_N;
     for (int i = 0; i < len; i++) {
         coeffs[i] = (float)message[i];
+    }
+    for (int i = len; i < WHT_N; i++) {
+        coeffs[i] = 0.0f;
     }
     fwht(coeffs, WHT_LOG2_N);
 }

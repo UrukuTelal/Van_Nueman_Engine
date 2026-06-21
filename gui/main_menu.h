@@ -13,4 +13,4 @@ struct MainMenuState {
     int selected_menu = 0;
 };
 
-void render_main_menu(MainMenuState& state, const float pillar_values[NUM_PILLARS]);
+void render_main_menu(MainMenuState& state, const float pillar_values[NumPillars]);

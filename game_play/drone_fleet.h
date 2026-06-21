@@ -21,7 +21,7 @@ namespace gameplay {
 
 constexpr uint32_t MAX_DRONES_PER_FLEET = 16;
 constexpr uint32_t MAX_WAYPOINTS = 64;
-constexpr uint32_t NUM_PILLARS = 16;
+constexpr uint32_t NumPillars = 16;
 
 enum class DroneStatus {
     IDLE,
@@ -113,7 +113,7 @@ public:
 
     bool has_cargo() const { return current_load_ > 0.0f; }
 
-    void set_pillar_values(const float pillars[NUM_PILLARS]);
+    void set_pillar_values(const float pillars[NumPillars]);
     void update_pillars_from_behavior();
 
     bool needs_recharge() const { return battery_ < 20.0f; }
@@ -134,7 +134,7 @@ private:
     float speed_;
     float cargo_capacity_;
     float current_load_;
-    float pillars_[NUM_PILLARS];
+    float pillars_[NumPillars];
 
     Route current_route_;
     size_t current_waypoint_index_;

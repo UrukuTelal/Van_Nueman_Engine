@@ -1,0 +1,137 @@
+Van Nueman Test Suite
+=====================
+
+=== Entity Tests (Bloch Rotation) ===
+Test: PillarStateVector creation... PASS
+Test: Bloch value<->theta conversion... PASS
+Test: Bloch rotation... PASS
+Test: Harm angular shift (Bloch)... PASS (shift=2.00 rad)
+Test: Distortion torsion (Bloch rotation)... PASS (eff=0.353, Bloch rotation)
+Test: TRANSFORM with Depth buffer... PASS (integrity=0.048, depth=0.336, constraint=0.000)
+=== All Entity Tests PASSED ===
+
+=== Pillar Coupling Tests (Bloch Rotation) ===
+Test: Pillar coupling basic... PASS (force=0.80)
+Test: Pillar coupling harm (Bloch rotation)... PASS (applied=1.000 rad, integrity=0.142)
+Test: Distortion torsion (Bloch phase twist)... PASS (eff=0.353, NOT 0.56)
+Test: Pillar interaction matrix... PASS (interaction=0.25)
+=== All Pillar Coupling Tests PASSED ===
+
+=== Transform Tests (Bloch Rotation) ===
+Test: Bloch dot product... PASS (dot=1.000, opposite=-1.000)
+Test: TRANSFORM operation... PASS (integrity 0.800 -> 0.048, constraint=0.000)
+Test: Apply Harm transform... PASS (harm applied, integrity=0.048)
+Test: Depth overflow -> constraint... PASS (depth 0.100->0.000, constraint 0.000->1.000)
+=== All Transform Tests PASSED ===
+
+=== Neuroevolution Tests ===
+Test: Population creation... PASS (size=100)
+Test: Fitness evaluation... PASS (fitness=0.0783)
+Test: Evolution step... PASS (gen: 0 -> 1)
+Test: Apply best weights... PASS
+=== All Neuroevolution Tests PASSED ===
+
+=== ScaledInt Tests ===
+Test: ScaledInt creation... PASS (raw=1048576)
+Test: ScaledInt addition... PASS (raw=3145728)
+Test: ScaledInt multiplication... PASS (raw=1048576)
+Test: ScaledInt to float... PASS (float=1.00)
+Test: ScaledInt bitwise AND... PASS (raw=1048576)
+=== All ScaledInt Tests PASSED ===
+
+=== Persistence Tests ===
+Test: Connection string building... PASS
+Test: SVO chunk parameters... PASS (chunk size=262144 bytes)
+Test: World snapshot checksum... PASS
+Test: Feedback log parameters... PASS
+Test: Evolution weights parameters... PASS
+=== All Persistence Tests PASSED ===
+
+=== Vulkan Tests ===
+Test: Vulkan version check... PASS (version 1.2)
+Test: Vulkan structure types... PASS
+Test: Vulkan instance creation (mock)... PASS (mock test, no Vulkan link needed)
+=== All Vulkan Tests PASSED ===
+
+=== Chunk Tests ===
+Test: Chunk creation... PASS (chunk 0,0,0)
+Test: Voxel access... PASS
+Test: Voxel set and get... PASS (material=1, r=255, g=128)
+Test: Invalid position handling... PASS (no crash)
+Test: Chunk coordinates... PASS
+Test: Voxel valid position check... PASS
+Test: Active cell promote/get... PASS (cell coords 10,20,30 l=0 id=0)
+Test: Active cell idempotent promote... PASS
+Test: Active cell remove... PASS
+Test: BCC key consistency... PASS
+Test: BCC l-bit correctness... PASS
+=== All Chunk Tests PASSED ===
+
+=== Spatial Hash Tests ===
+Test: Spatial hash cell coords... PASS
+Test: Spatial hash key generation... PASS
+Test: Spatial hash collision detection... PASS (1000 unique keys)
+Test: Spatial hash nearby radius calculation... PASS (radius=1 cells)
+=== All Spatial Hash Tests PASSED ===
+
+Test: WHT fp20 round-trip... PASS
+=== Fracture Pipeline Tests ===
+Test: Fracture check_yield — no fracture... PASS
+Test: Fracture check_yield — triggers... PASS (face 0 fractured)
+Test: Fracture pipeline process... PASS (4 children, 4 events, energy=1)
+Test: Fracture collapse to influence (WHT)... PASS (16 WHT coefficients computed)
+=== All Fracture Pipeline Tests PASSED ===
+
+=== Voxel Mesh Generator Tests ===
+Test: Voxel mesh generate... PASS (24 verts, 132 indices, 44 tris)
+Test: Voxel mesh dome mode... PASS (full=44 tris, dome=28 tris)
+Test: Voxel cell mesh generation... PASS (cell_id=42, 44 tris, colors=yes)
+=== All Voxel Mesh Generator Tests PASSED ===
+
+=== Voxel Coupling Tests ===
+Test: Cell deformation creation... PASS
+Test: Entity forces to cell... PASS
+Test: Radial force to cell... PASS
+Test: Deformation Verlet integration... PASS (vertices displaced, strain accumulated)
+=== All Voxel Coupling Tests PASSED ===
+
+=== TRANSFORM Pipeline Tests ===
+Test: Bloch rotation round-trip... PASS (theta 1.982 -> 2.082, val 0.300 -> 0.255)
+Test: Bloch drift toward baseline... PASS
+Test: Harm reduces Integrity via Bloch rotation... PASS (0.800 -> 0.798, delta_theta=0.005000)
+Test: Force drives velocity... PASS (pos: -0.813, -0.000, -0.126, speed=0.027)
+Test: Decay increases Harm from hazard... PASS (0.100 -> 0.100)
+Test: Distortion twists Awareness... PASS (0.700 -> 0.700)
+Test: AgentECS reserve and add... PASS (idx=0, size=1)
+=== All TRANSFORM Pipeline Tests PASSED ===
+
+=== Orbital Mechanics Tests ===
+Test: Circular orbit stability... PASS (drift=0.0000, r=10.00 -> 10.00)
+Test: Escape velocity... PASS (max_dist=1598.4, escape=14.142)
+Test: 2-body energy conservation (leapfrog)... PASS (drift=0.004010, E0=-50.000, E_min=-50.200, E_max=-49.999)
+=== All Orbital Tests PASSED ===
+
+=== LLM Worker WHT Tests ===
+Test: WHT compress/decompress pillar round-trip... PASS
+Test: WHT sparsity after thresholding... PASS (nonzero=4/32, threshold=0.5)
+=== All LLM Worker Tests PASSED ===
+
+=== Hopf-PID Interaction Engine Tests ===
+Test: Hopf projection round-trip... PASS (membrane_norm=0.9220, dims=512->32)
+Test: Delta-theta geometric phase shift... PASS (delta_theta=1.570796)
+Test: Hopf transform propagates to all frames... PASS (frame0: 0.800 -> 0.100, frame15: 0.800 -> 0.116)
+Test: Planck cap filter... PASS
+Test: Relational complexity computation... PASS (low=0.4275, high=0.5034)
+Test: Rupture detection and recovery... PASS (complexity: 0.99 -> 0.4950, integrity: 0.200 -> 0.342)
+Test: Hopfion soliton stabilization... PASS (cohesion: 0.5000 -> 0.4873)
+Test: WHT re-indexing propagation... PASS (integrity: 0.9000 -> 0.5000)
+Test: Full Hopf tick integration... PASS (rc: 0.0000 -> 0.4274, membrane[0]=1.000)
+=== All Hopf-PID Tests PASSED ===
+
+PASS: amplitude_roundtrip (100 values)
+PASS: angle_encoding round-trip (16 pillars)
+PASS: complex_encoding round-trip (16 pillars)
+PASS: qubit_norm (16 qubits, each L2=1)
+ALL quantum amplitude tests PASS
+PASS: forward_pass_determinism (two runs identical)
+PASS: forward_pass_output_range (4 input sets

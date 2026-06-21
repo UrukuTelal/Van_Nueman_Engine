@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+
+#if VOICE_ENABLED
 #include <whisper.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -12,6 +14,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #endif
+#endif // VOICE_ENABLED
+
+#if VOICE_ENABLED
 
 struct VoiceSystemImpl {
     whisper_context* whisper_ctx;
@@ -19,7 +24,7 @@ struct VoiceSystemImpl {
     bool streaming_active;
     float tts_volume;
     float mic_volume;
-    float current_pillars[NUM_PILLARS];
+    float current_pillars[NumPillars];
 };
 
 VoiceSystem voice_init(const char* model_path, const char* device_name) {
@@ -38,7 +43,7 @@ VoiceSystem voice_init(const char* model_path, const char* device_name) {
     ctx->mic_volume = 0.7f;
     ctx->streaming_active = false;
 
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         ctx->current_pillars[i] = 0.5f;
     }
 
@@ -72,11 +77,12 @@ char* voice_recognize_speech(VoiceSystem ctx, int max_len) {
 
     printf("[Voice] Recognizing speech (Whisper)...\n");
 
+    if (max_len <= 0) return nullptr;
+
     char* text_buffer = new char[max_len];
     memset(text_buffer, 0, max_len);
 
-    float audio_data[16000];
-    memset(audio_data, 0, sizeof(audio_data));
+    float* audio_data = new float[16000]();
 
     whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
     params.print_progress = false;
@@ -86,6 +92,7 @@ char* voice_recognize_speech(VoiceSystem ctx, int max_len) {
     if (whisper_full(impl->whisper_ctx, params, audio_data, 16000) != 0) {
         printf("[Voice] Whisper processing failed\n");
         delete[] text_buffer;
+        delete[] audio_data;
         return nullptr;
     }
 
@@ -103,6 +110,7 @@ char* voice_recognize_speech(VoiceSystem ctx, int max_len) {
     char* result = new char[offset + 1];
     memcpy(result, text_buffer, offset + 1);
     delete[] text_buffer;
+    delete[] audio_data;
 
     return result;
 }
@@ -138,8 +146,8 @@ void voice_speak(VoiceSystem ctx, const char* text) {
 
     printf("[Voice] Synthesizing speech: %s\n", text);
 
-    float warmth = impl->current_pillars[PILLAR_WARMTH];
-    float harm = impl->current_pillars[PILLAR_HARM];
+    float warmth = impl->current_pillars[Warmth];
+    float harm = impl->current_pillars[Harm];
 
     float volume = impl->tts_volume * (1.0f - harm * 0.5f) * (0.5f + warmth * 0.5f);
 
@@ -160,32 +168,80 @@ void voice_speak(VoiceSystem ctx, const char* text) {
     char vol_arg[32];
     snprintf(vol_arg, sizeof(vol_arg), "%.1f", volume);
 
+    size_t text_len = strlen(text);
+    if (text_len > 4096) {
+        printf("[Voice] Error: Speech text too long (%zu chars, max 4096)\n", text_len);
+        return;
+    }
+
 #ifdef _WIN32
     STARTUPINFOA si = {sizeof(si)};
     PROCESS_INFORMATION pi;
-    char cmdline[8192];
-    snprintf(cmdline, sizeof(cmdline), "piper --volume %s --model %s --text \"%s\"",
-             vol_arg, model_path, text);
-    if (!CreateProcessA("piper.exe", cmdline, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-        printf("[Voice] Error: Failed to execute piper (error %lu)\n", GetLastError());
+    // Use separate argv-style: pass --text via stdin pipe to avoid arg injection
+    // Build command with validated components only
+    char model_arg[512];
+    snprintf(model_arg, sizeof(model_arg), "--model=%s", model_path);
+    // Write text to temp file for piper to read (avoid cmdline injection entirely)
+    char temp_path[MAX_PATH];
+    if (!GetTempPathA(MAX_PATH, temp_path)) {
+        printf("[Voice] Error: GetTempPath failed\n");
         return;
     }
-    WaitForSingleObject(pi.hProcess, INFINITE);
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
+    char temp_file[MAX_PATH];
+    if (GetTempFileNameA(temp_path, "vnv", 0, temp_file) == 0) {
+        printf("[Voice] Error: GetTempFileNameA failed (error %lu)\n", GetLastError());
+        return;
+    }
+    // Change extension from .tmp to .txt
+    size_t tlen = strlen(temp_file);
+    if (tlen > 4) {
+        temp_file[tlen - 4] = '\0';
+        strncat(temp_file, ".txt", MAX_PATH - tlen + 3);
+    }
+    HANDLE hFile = CreateFileA(temp_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                               FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        printf("[Voice] Error: Failed to create temp file (error %lu)\n", GetLastError());
+        return;
+    }
+    DWORD written;
+    WriteFile(hFile, text, (DWORD)text_len, &written, NULL);
+    CloseHandle(hFile);
+
+    char cmdline[8192];
+    snprintf(cmdline, sizeof(cmdline), "piper --volume %s --model \"%s\" --input-file \"%s\"",
+             vol_arg, model_path, temp_file);
+    if (!CreateProcessA(NULL, cmdline, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        printf("[Voice] Error: Failed to execute piper (error %lu)\n", GetLastError());
+    } else {
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+    DeleteFileA(temp_file);
 #else
+    // Write text to a temp file to avoid cmdline injection
+    char temp_file[] = "/tmp/vn_voice_XXXXXX";
+    int fd = mkstemp(temp_file);
+    if (fd < 0) {
+        printf("[Voice] Error: Failed to create temp file\n");
+        return;
+    }
+    write(fd, text, text_len);
+    close(fd);
+
     pid_t pid = fork();
     if (pid == 0) {
         execlp("piper", "piper", "--volume", vol_arg, "--model", model_path,
-               "--text", text, (char*)NULL);
+               "--input-file", temp_file, (char*)NULL);
         _exit(1);
     } else if (pid > 0) {
         int status;
         waitpid(pid, &status, 0);
     } else {
         printf("[Voice] Error: fork failed\n");
-        return;
     }
+    unlink(temp_file);
 #endif
 
     printf("[Voice] Speech synthesized\n");
@@ -195,10 +251,10 @@ void voice_encode_wht(VoiceSystem ctx, float* out_wht, int wht_n) {
     if (!ctx || !out_wht) return;
     VoiceSystemImpl* impl = (VoiceSystemImpl*)ctx;
 
-    for (int i = 0; i < wht_n && i < NUM_PILLARS; i++) {
+    for (int i = 0; i < wht_n && i < NumPillars; i++) {
         out_wht[i] = impl->current_pillars[i];
     }
-    for (int i = NUM_PILLARS; i < wht_n; i++) {
+    for (int i = NumPillars; i < wht_n; i++) {
         out_wht[i] = 0.0f;
     }
 }
@@ -207,8 +263,10 @@ void voice_set_pillars(VoiceSystem ctx, const float* pillars, int count) {
     if (!ctx || !pillars) return;
     VoiceSystemImpl* impl = (VoiceSystemImpl*)ctx;
 
-    int copy_count = count < NUM_PILLARS ? count : NUM_PILLARS;
+    int copy_count = count < NumPillars ? count : NumPillars;
     for (int i = 0; i < copy_count; i++) {
         impl->current_pillars[i] = pillars[i];
     }
 }
+
+#endif // VOICE_ENABLED

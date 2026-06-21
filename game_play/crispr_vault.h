@@ -20,7 +20,7 @@ struct GenomeEntry {
     bool is_custom;                // Custom-designed vs discovered
     
     // Pillar template for this genome
-    float pillar_template[16];    // NUM_PILLARS = 16
+    float pillar_template[16];    // NumPillars = 16
     
     // Physical traits (for creature generation)
     float body_size;               // 0.0 - 1.0

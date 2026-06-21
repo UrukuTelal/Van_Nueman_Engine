@@ -12,7 +12,6 @@ struct float3 {
     float x, y, z;
 };
 
-#define NUM_PILLARS 16
 #define ACTION_COUNT 8
 #define MAX_ENTITIES 500000
 
@@ -45,9 +44,9 @@ void process_entity(uint32_t entity_idx, const PushConstants& pc) {
     if (entity_idx >= pc.num_entities) return;
     
     // Load entity's 16D pillar vector
-    float pillars[NUM_PILLARS];
-    uint32_t base = entity_idx * NUM_PILLARS;
-    for (uint32_t i = 0; i < NUM_PILLARS; i++) {
+    float pillars[NumPillars];
+    uint32_t base = entity_idx * NumPillars;
+    for (uint32_t i = 0; i < NumPillars; i++) {
         pillars[i] = g_pillar_states[base + i];
     }
     
@@ -55,10 +54,10 @@ void process_entity(uint32_t entity_idx, const PushConstants& pc) {
     float q_values[ACTION_COUNT];
     for (uint32_t action = 0; action < ACTION_COUNT; action++) {
         float q = g_biases[action];
-        uint32_t weight_base = action * NUM_PILLARS;
+        uint32_t weight_base = action * NumPillars;
         
         // Dot product: pillars · weights[action]
-        for (uint32_t p = 0; p < NUM_PILLARS; p++) {
+        for (uint32_t p = 0; p < NumPillars; p++) {
             q += pillars[p] * g_weights[weight_base + p];
         }
         
@@ -122,7 +121,7 @@ void EntityNeuralNet::upload_pillar_states(const float* pillar_data, uint32_t nu
 void EntityNeuralNet::compute_actions(uint32_t num_entities, float epsilon) {}
 void EntityNeuralNet::download_q_values(float* q_data, uint32_t num_entities) {}
 
-uint32_t EntityNeuralNet::select_action_cpu(const float pillars[NUM_PILLARS], EntityQTable& qtable, bool explore) {
+uint32_t EntityNeuralNet::select_action_cpu(const float pillars[NumPillars], EntityQTable& qtable, bool explore) {
     if (explore) {
         static std::random_device rd;
         static std::mt19937 gen(rd());
@@ -141,12 +140,12 @@ uint32_t EntityNeuralNet::select_action_cpu(const float pillars[NUM_PILLARS], En
     }
 }
 
-void EntityNeuralNet::observe_cpu(EntityQTable& qtable, const float old_pillars[NUM_PILLARS], uint32_t action, float reward, const float new_pillars[NUM_PILLARS]) {}
+void EntityNeuralNet::observe_cpu(EntityQTable& qtable, const float old_pillars[NumPillars], uint32_t action, float reward, const float new_pillars[NumPillars]) {}
 
-float EntityNeuralNet::compute_pillar_reward(const float pillars[NUM_PILLARS]) {
+float EntityNeuralNet::compute_pillar_reward(const float pillars[NumPillars]) {
     float sum = 0.0f;
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         if (pillars[i] > 0) sum += pillars[i];
     }
-    return sum / NUM_PILLARS;
+    return sum / NumPillars;
 }

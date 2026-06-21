@@ -1,7 +1,9 @@
 #ifndef VN_FRACTAL_H
 #define VN_FRACTAL_H
 
+#ifndef UGC_COMPILER
 #include <cstdint>
+#endif
 
 namespace vn {
 

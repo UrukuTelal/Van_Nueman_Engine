@@ -37,8 +37,8 @@ struct OrganGPU {
     uint _pad[3];
 };
 
-// Skelly data (bindings 3-5)
-layout(binding = 3, std430) readonly buffer BoneBuffer {
+// Skelly data (bindings 4-6)
+layout(binding = 6, std430) readonly buffer BoneBuffer {
     BoneGPU bones[100];  // Max 100 bones
 };
 layout(binding = 4, std430) readonly buffer MuscleBuffer {
@@ -48,18 +48,11 @@ layout(binding = 5, std430) readonly buffer OrganBuffer {
     OrganGPU organs[50];  // Max 50 organs
 };
 
-// Instance counts (push constants or UBO)
-// For simplicity, define max counts as constants and use boneCount/muscleCount/organCount from C++
-// layout(binding = 6) uniform CountUBO {
-//     uint bone_count;
-//     uint muscle_count;
-//     uint organ_count;
-//     uint _pad;
-// };
-// Use specialization constants or just hardcode for now (demo)
-uint bone_count = 2;
-uint muscle_count = 1;
-uint organ_count = 1;
+layout(push_constant) uniform SkellyCounts {
+    uint bone_count;
+    uint muscle_count;
+    uint organ_count;
+} skelly;
 
 // Output (binding 2)
 layout(binding = 2, rgba8) uniform writeonly image2D outputImg;
@@ -112,7 +105,7 @@ void main() {
         vec3 p = ray_pos + ray_dir * t;
 
         // Check bones (white)
-        for (uint j = 0; j < bone_count; j++) {
+        for (uint j = 0; j < skelly.bone_count; j++) {
             vec3 start = bones[j].start.xyz;
             vec3 end = bones[j].end.xyz;
             float r = bones[j].end.w;  // radius stored in .w
@@ -125,7 +118,7 @@ void main() {
         }
 
         // Check muscles (red, intensity based on activation)
-        for (uint j = 0; j < muscle_count; j++) {
+        for (uint j = 0; j < skelly.muscle_count; j++) {
             vec3 start = muscles[j].start.xyz;
             vec3 end = muscles[j].end.xyz;
             float r = muscles[j].end.w * (1.0 + muscles[j].activation * 2.0);  // Bulge with activation
@@ -139,7 +132,7 @@ void main() {
         }
 
         // Check organs (colored by type)
-        for (uint j = 0; j < organ_count; j++) {
+        for (uint j = 0; j < skelly.organ_count; j++) {
             vec3 center = organs[j].center.xyz;
             float r = organs[j].center.w;  // radius stored in .w
             float d = sdf_sphere(p, center, r);

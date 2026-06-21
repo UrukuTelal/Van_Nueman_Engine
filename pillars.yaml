@@ -1,0 +1,149 @@
+# pillars.yaml — Single Source of Truth for the 16 Pillar System
+# This file drives codegen for C++ (engine + toolchain), Python lists, and JSON configs.
+# DO NOT EDIT the generated files directly — edit this file and re-run codegen.
+# Regen: python scripts/generate_pillar_sources.py
+
+pillars:
+  - name: awareness
+    index: 0
+    short: "Intelligence/Analytics"
+    description: "Detect, differentiate, and contextualize reality; the precondition for action."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [distortion]
+
+  - name: willpower
+    index: 1
+    short: "Strategic Persistence"
+    description: "Initiate and sustain action toward goals; overcome inertia."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [force, resistance, depth]
+
+  - name: force
+    index: 2
+    short: "Execution/Production"
+    description: "Raw capacity to effect change in the environment."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [influence, relation]
+
+  - name: influence
+    index: 3
+    short: "Communication/Culture"
+    description: "Capacity to shape others' perceptions, decisions, and trajectories."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [relation, attraction]
+
+  - name: resistance
+    index: 4
+    short: "Risk/Compliance/Stabilization"
+    description: "Capacity to withstand perturbation and enforce boundaries."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [integrity, cohesion]
+
+  - name: integrity
+    index: 5
+    short: "Identity/Standards"
+    description: "Internal coherence between values, identity, and action."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [cohesion]
+
+  - name: cohesion
+    index: 6
+    short: "Team Structure/Binding Force"
+    description: "Mutual binding force that holds groups together."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [relation, presence]
+
+  - name: relation
+    index: 7
+    short: "Networking/Dependencies"
+    description: "Topology of connections and information flow between entities."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [cohesion, attraction]
+
+  - name: presence
+    index: 8
+    short: "Priority/Visibility"
+    description: "Salience and immediacy in the current field of awareness."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [influence, warmth]
+
+  - name: warmth
+    index: 9
+    short: "HR/Support Systems"
+    description: "Affiliative drive; capacity for trust, safety, and care."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [cohesion, memory]
+
+  - name: memory
+    index: 10
+    short: "Knowledge Systems/Learning"
+    description: "Storage and recall of experience; learning from history."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [relation, depth]
+
+  - name: attraction
+    index: 11
+    short: "Incentives/Directional Pull"
+    description: "Gravitational pull toward goals, resources, or affinities."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [force, relation]
+
+  - name: harm
+    index: 12
+    short: "Disruption Detection/Transformation"
+    description: "Detection of and capacity to inflict damage; catalyst for change."
+    constraints:
+      min_val: 0.0
+      max_val: 0.95
+      allowed_targets: [integrity, cohesion]
+
+  - name: distortion
+    index: 13
+    short: "Info Decay/Perception Subversion"
+    description: "Noise, deception, and entropy in information channels."
+    constraints:
+      min_val: 0.0
+      max_val: 0.85
+      allowed_targets: [awareness, memory]
+
+  - name: flux
+    index: 14
+    short: "Transfer Throughput"
+    description: "Rate of change, flow of energy/information between states."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [force, influence, attraction, depth]
+
+  - name: depth
+    index: 15
+    short: "Latent Capacity"
+    description: "Reservoir of untapped potential; buffer against constraint saturation."
+    constraints:
+      min_val: 0.0
+      max_val: 1.0
+      allowed_targets: [warmth, memory]

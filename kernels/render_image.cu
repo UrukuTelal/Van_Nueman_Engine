@@ -8,12 +8,10 @@
 #define SVO_MAX_LODS 8
 
 // Float3 helpers
-__device__ float3 make_float3(float x, float y, float z) {
-    float3 r; r.x = x; r.y = y; r.z = z; return r;
-}
 __device__ float3 operator+(float3 a, float3 b) { return make_float3(a.x+b.x, a.y+b.y, a.z+b.z); }
 __device__ float3 operator-(float3 a, float3 b) { return make_float3(a.x-b.x, a.y-b.y, a.z-b.z); }
 __device__ float3 operator*(float3 a, float s) { return make_float3(a.x*s, a.y*s, a.z*s); }
+__device__ float3 operator*(float3 a, float3 b) { return make_float3(a.x*b.x, a.y*b.y, a.z*b.z); }
 __device__ float dot(float3 a, float3 b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
 __device__ float3 cross(float3 a, float3 b) {
     return make_float3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
@@ -54,11 +52,12 @@ struct SVO_Node_Render {
 __device__ float svo_ray_intersect(SVO_Node_Render* nodes, uint32_t node_idx,
                                     Ray ray, float3 box_min, float3 box_max,
                                     float* t_out, float3* normal_out) {
-    // Simple AABB test first
+    // Simple AABB test first (handle zero direction components explicitly)
     float t_min = 0.0f, t_max = 1e10f;
-    float3 inv_dir = make_float3(1.0f / (ray.direction.x + 1e-8f),
-                                  1.0f / (ray.direction.y + 1e-8f),
-                                  1.0f / (ray.direction.z + 1e-8f));
+    float3 inv_dir;
+    inv_dir.x = (fabsf(ray.direction.x) > 1e-10f) ? 1.0f / ray.direction.x : 1e10f;
+    inv_dir.y = (fabsf(ray.direction.y) > 1e-10f) ? 1.0f / ray.direction.y : 1e10f;
+    inv_dir.z = (fabsf(ray.direction.z) > 1e-10f) ? 1.0f / ray.direction.z : 1e10f;
 
     float3 t1 = (box_min - ray.origin) * inv_dir;
     float3 t2 = (box_max - ray.origin) * inv_dir;
@@ -116,11 +115,12 @@ __global__ void render_kernel(Camera cam, SVO_Node_Render* svo_nodes, uint32_t s
     uint32_t py = blockIdx.y * blockDim.y + threadIdx.y;
     if (px >= width || py >= height) return;
 
-    // Calculate ray direction
+    // Calculate ray direction (fov in radians, uses tan(fov/2) for proper perspective)
     float u = (px + 0.5f) / width;
     float v = (py + 0.5f) / height;
-    u = (u * 2.0f - 1.0f) * cam.fov * cam.aspect;
-    v = (v * 2.0f - 1.0f) * cam.fov;
+    float scale = tanf(cam.fov * 0.5f);
+    u = (u * 2.0f - 1.0f) * scale * cam.aspect;
+    v = (v * 2.0f - 1.0f) * scale;
 
     Ray ray;
     ray.origin = cam.position;

@@ -14,14 +14,15 @@ void pillar_update_kernel(PillarStateVector* pillars,
   // Simple loop - should work on CPU, CUDA, and Vulkan
   for (int i = 0; i < count; i++) {
     // Awareness: sample world state (simplified)
-    int32_t awareness = pillars[i][PillarIndex::Awareness];
+    fp20_t awareness = pillars[i][PillarIndex::Awareness];
 
     // Willpower: drift toward baseline
-    int32_t willpower = pillars[i][PillarIndex::Willpower];
-    int32_t force = pillars[i][PillarIndex::Force];
+    fp20_t willpower = pillars[i][PillarIndex::Willpower];
+    fp20_t force = pillars[i][PillarIndex::Force];
 
     // Apply force based on willpower
-    int32_t new_force = force + ((willpower >> 10) * (int32_t)dt);
+    fp20_t dt_scaled(dt);
+    fp20_t new_force = force + ((willpower >> 10) * dt_scaled);
     pillars[i][PillarIndex::Force] = new_force;
   }
 }

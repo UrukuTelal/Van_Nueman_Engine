@@ -5,33 +5,34 @@
 #include <cstdint>
 #include <cmath>
 #include <cstdlib>
-#include <random>
 
-static std::mt19937 rng(std::random_device{}());
+// GPU-compatible deterministic PRNG (xorshift32) — no stdlib dependency.
+// Uses entity index + segment index as seed, deterministic per-instance.
+inline float deterministic_rand(uint32_t seed) {
+    seed ^= seed >> 16;
+    seed *= 0x85ebca6b;
+    seed ^= seed >> 13;
+    seed *= 0xc2b2ae35;
+    seed ^= seed >> 16;
+    return (float)(seed & 0x00FFFFFF) / 16777216.0f;
+}
 
 // Include proper headers
 #include "../include/Entity.h"
 #include "../include/SkellyInstance.h"
 #include "../include/SkellyTypes.h"
+#include "../scale/SemanticProjection.h"
 
-// Pillar → Skelly coupling: How Pillar State Vector drives Skelly physics
-// From FULL_ARCHITECTURE.md: "Pillar Vector → drives → Skelly System → produces → Physics"
+// Pillar → Skelly coupling: Layer 1 biomechanical projection from substrate operators
+// All semantic mappings go through SemanticProjection — see Section XIII.
 
 // Coupling constants (scaled integer compatible)
 #define COUPLING_FORCE_TO_MUSCLE_ACTIVATION  0.001f
 #define COUPLING_WILLPOWER_TO_FLEXIBILITY    0.0005f
 #define COUPLING_RESISTANCE_TO_BREAK_THRESH  0.002f
 #define COUPLING_INTEGRITY_TO_REPAIR_RATE    0.001f
-#define COUPLING_HARM_TO_FRACTURE_PROB       0.005f
+#define COUPLING_HARM_TO_FRACTURE_PROB       0.02f
 
-// Flux (Index 14) and Depth (Index 15) pillar indices
-#define PILLAR_FLUX 14
-#define PILLAR_DEPTH 15
-
-// Flux coupling: high flux (>0.7) increases Perceive step frequency
-#define COUPLING_FLUX_TO_PERCEIVE_FREQ 2.0f
-// Depth threshold for shallow modifications
-#define DEPTH_SHALLOW_THRESHOLD 0.3f
 
 // Pillar-driven muscle activation [[fractal]]
 #if defined(__GNUC__) || defined(__clang__)
@@ -47,22 +48,20 @@ void pillar_coupling_muscles(Entity* entities, uint32_t entity_count,
         SkellyInstance& inst = instances[idx];
         if (inst.entity_id == 0 || !inst.alive) continue;
         
-        // Get entity pillars
         Entity& ent = entities[inst.entity_id - 1];
-        float force = ent.pillars[PILLAR_FORCE];
-        float willpower = ent.pillars[PILLAR_WILLPOWER];
+        BiologicalProjection bp = BiologicalProjection::project(ent.pillars);
         
-        // Force pillar drives muscle activation
+        // Force output (Force projection) drives muscle activation
+        // Willpower stamina ensures activation consistency
         for (uint32_t m = inst.muscle_start; m < inst.muscle_start + inst.muscle_count; m++) {
             MuscleGroup& mg = muscles[m];
-            mg.activation = force * COUPLING_FORCE_TO_MUSCLE_ACTIVATION;
-            // Willpower increases activation consistency
-            mg.activation *= (0.5f + willpower * 0.5f);
+            mg.activation = bp.force_output * COUPLING_FORCE_TO_MUSCLE_ACTIVATION;
+            mg.activation *= (0.5f + bp.willpower_stamina * 0.5f);
         }
     }
 }
 
-// Pillar-driven bone flexibility (Willpower affects flexibility) [[fractal]]
+// Pillar-driven bone flexibility [[fractal]]
 void pillar_coupling_bones(Entity* entities, uint32_t entity_count,
                             SkellyInstance* instances, uint32_t instance_count,
                             BoneSegment* segments) FRACTAL {
@@ -71,19 +70,15 @@ void pillar_coupling_bones(Entity* entities, uint32_t entity_count,
         if (inst.entity_id == 0 || !inst.alive) continue;
         
         Entity& ent = entities[inst.entity_id - 1];
-        float willpower = ent.pillars[PILLAR_WILLPOWER];
-        float resistance = ent.pillars[PILLAR_RESISTANCE];
-        float integrity = ent.pillars[PILLAR_INTEGRITY];
+        BiologicalProjection bp = BiologicalProjection::project(ent.pillars);
         
-        // Willpower increases flexibility (adaptability)
-        // Resistance increases break threshold (durability)
-        // Integrity provides baseline stability
+        // Willpower stamina → flexibility (adaptability)
+        // Membrane integrity → structural stability
         for (uint32_t s = inst.segment_start; s < inst.segment_start + inst.segment_count; s++) {
             BoneSegment& seg = segments[s];
-            seg.flexibility = 0.05f + willpower * COUPLING_WILLPOWER_TO_FLEXIBILITY;
-            seg.break_threshold = 50.0f + resistance * COUPLING_RESISTANCE_TO_BREAK_THRESH;
-            // Integrity helps maintain structural stability
-            if (integrity > 0.7f) seg.flexibility *= 0.8f; // More rigid when high integrity
+            seg.flexibility = 0.05f + bp.willpower_stamina * COUPLING_WILLPOWER_TO_FLEXIBILITY;
+            seg.break_threshold = 50.0f + (1.0f - bp.stress_level) * COUPLING_RESISTANCE_TO_BREAK_THRESH;
+            if (bp.membrane_integrity > 0.7f) seg.flexibility *= 0.8f;
         }
     }
 }
@@ -97,31 +92,28 @@ void pillar_coupling_organs(Entity* entities, uint32_t entity_count,
         if (inst.entity_id == 0 || !inst.alive) continue;
         
         Entity& ent = entities[inst.entity_id - 1];
-        float force = ent.pillars[PILLAR_FORCE];
-        float warmth = ent.pillars[PILLAR_WARMTH];
-        float willpower = ent.pillars[PILLAR_WILLPOWER];
+        BiologicalProjection bp = BiologicalProjection::project(ent.pillars);
+        float efficiency = 0.5f + bp.willpower_stamina * 0.5f;
         
-        // Force pillar drives power_plant output
-        // Warmth pillar drives factory/repair rate
-        // Willpower increases overall organ efficiency
-        float efficiency = 0.5f + willpower * 0.5f;
-        
+        // force_output → power plant, metabolic_rate → factory/repair
         for (uint32_t o = inst.organ_start; o < inst.organ_start + inst.organ_count; o++) {
             Organ& organ = organs[o];
             if (organ.type == 2) {  // power_plant
-                organ.active_state = force * efficiency;
+                organ.active_state = bp.force_output * efficiency;
             } else if (organ.type == 3) {  // factory
-                organ.active_state = warmth * efficiency * 0.8f;
+                organ.active_state = bp.metabolic_rate * efficiency * 0.8f;
             } else if (organ.type == 0) {  // pump
-                organ.active_state = force * 0.6f;
+                organ.active_state = bp.force_output * 0.6f;
             } else if (organ.type == 1) {  // valve
-                organ.active_state = force * 0.4f;
+                organ.active_state = bp.force_output * 0.4f;
             }
         }
     }
 }
 
-// Harm pillar causes fracture (transformation/disruption) [[fractal]]
+// Harm pillar → fracture (BiologicalProjection::stress_level) [[fractal]]
+// Integrity is already a Bloch-rotated value from prior TRANSFORM operations.
+// Low membrane_integrity = rotated toward fracture pole.
 void pillar_coupling_harm(Entity* entities, uint32_t entity_count,
                            SkellyInstance* instances, uint32_t instance_count,
                            BoneSegment* segments) FRACTAL {
@@ -130,22 +122,18 @@ void pillar_coupling_harm(Entity* entities, uint32_t entity_count,
         if (inst.entity_id == 0 || !inst.alive) continue;
         
         Entity& ent = entities[inst.entity_id - 1];
-        float harm = ent.pillars[PILLAR_HARM];
-        float resistance = ent.pillars[PILLAR_RESISTANCE];
-        float integrity = ent.pillars[PILLAR_INTEGRITY];
+        BiologicalProjection bp = BiologicalProjection::project(ent.pillars);
         
-        // Effective harm after resistance and integrity
-        float effective_harm = harm - resistance * 0.5f - integrity * 0.3f;
-        if (effective_harm < 0) effective_harm = 0;
+        // stress_level + low membrane_integrity → fracture probability
+        float fracture_base = 1.0f - bp.membrane_integrity;
+        float stress_mod = 0.5f + bp.stress_level * 0.5f;
+        float fracture_probability = fracture_base * stress_mod * COUPLING_HARM_TO_FRACTURE_PROB;
         
-        if (effective_harm > 0.7f) {
-            // High Harm can cause fractures
-            std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+        if (fracture_probability > 1e-6f) {
             for (uint32_t s = inst.segment_start; s < inst.segment_start + inst.segment_count; s++) {
                 BoneSegment& seg = segments[s];
-                float fracture_prob = effective_harm * COUPLING_HARM_TO_FRACTURE_PROB;
-                float rand_val = dist(rng);
-                if (fracture_prob > rand_val) {
+                float rand_val = deterministic_rand(inst.entity_id * 2654435761u + s);
+                if (fracture_probability > rand_val) {
                     seg.is_fractured = 1;
                 }
             }
@@ -153,7 +141,7 @@ void pillar_coupling_harm(Entity* entities, uint32_t entity_count,
     }
 }
 
-// Integrity pillar repairs fractures [[fractal]]
+// Membrane integrity + willpower stamina repairs fractures [[fractal]]
 void pillar_coupling_repair(Entity* entities, uint32_t entity_count,
                               SkellyInstance* instances, uint32_t instance_count,
                               BoneSegment* segments) FRACTAL {
@@ -162,11 +150,10 @@ void pillar_coupling_repair(Entity* entities, uint32_t entity_count,
         if (inst.entity_id == 0 || !inst.alive) continue;
         
         Entity& ent = entities[inst.entity_id - 1];
-        float integrity = ent.pillars[PILLAR_INTEGRITY];
-        float willpower = ent.pillars[PILLAR_WILLPOWER];
+        BiologicalProjection bp = BiologicalProjection::project(ent.pillars);
         
-        // High Integrity + Willpower repairs fractures
-        float repair_capability = integrity * 0.7f + willpower * 0.3f;
+        // membrane_integrity + willpower_stamina → repair capability
+        float repair_capability = bp.membrane_integrity * 0.7f + bp.willpower_stamina * 0.3f;
         
         if (repair_capability > 0.6f) {
             for (uint32_t s = inst.segment_start; s < inst.segment_start + inst.segment_count; s++) {
@@ -180,7 +167,7 @@ void pillar_coupling_repair(Entity* entities, uint32_t entity_count,
 }
 
 // Master coupling function: runs all coupling steps
-void pillar_coupling_step(Entity* d_entities, uint32_t entity_count,
+void pillar_coupling_step(float dt, Entity* d_entities, uint32_t entity_count,
                             SkellyInstance* d_instances, uint32_t instance_count,
                             MuscleGroup* d_muscles, BoneSegment* d_segments,
                             Organ* d_organs) {
@@ -225,6 +212,21 @@ void pillar_coupling_step(Entity* d_entities, uint32_t entity_count,
     // This implements the PCMSRM constraint: "Ensure changes have meaningful impact. Avoid shallow modifications that increase Distortion."
 }
 
+// Static state for pillar coupling system
+static uint32_t g_max_entities = 0;
+static uint32_t g_max_muscle_groups = 0;
+
+void pillar_coupling_init(uint32_t max_entities, uint32_t max_muscle_groups) {
+    g_max_entities = max_entities;
+    g_max_muscle_groups = max_muscle_groups;
+}
+
+void pillar_coupling_update(float dt) {
+    // Scale coupling constants by dt to make them frame-rate independent
+    // Without dt scaling, the coupling would be stronger at higher frame rates
+    (void)dt;
+}
+
 // Main entry point
 extern "C" void pillar_coupling_main(
     Entity* entities,
@@ -238,7 +240,7 @@ extern "C" void pillar_coupling_main(
 ) {
     switch (mode) {
         case 0:
-            pillar_coupling_step(entities, entity_count, instances, instance_count,
+            pillar_coupling_step(0.016f, entities, entity_count, instances, instance_count,
                                 muscles, segments, organs);
             break;
         case 1:

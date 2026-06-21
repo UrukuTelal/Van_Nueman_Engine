@@ -6,6 +6,21 @@
 #include <string>
 #include "imgui.h"
 #include "../include/Entity.h"
+#include "../include/PhotonicWrapper.h"
+
+// Color display names for wrapper UI
+static const char* WRAPPER_COLOR_NAMES[NUM_COLORS] = {
+    "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta"
+};
+
+static const ImVec4 WRAPPER_COLOR_VALUES[NUM_COLORS] = {
+    ImVec4(0.94f, 0.27f, 0.27f, 1.0f),  // Red
+    ImVec4(0.92f, 0.70f, 0.03f, 1.0f),  // Yellow
+    ImVec4(0.13f, 0.77f, 0.37f, 1.0f),  // Green
+    ImVec4(0.02f, 0.71f, 0.83f, 1.0f),  // Cyan
+    ImVec4(0.23f, 0.51f, 0.96f, 1.0f),  // Blue
+    ImVec4(0.93f, 0.27f, 0.60f, 1.0f),  // Magenta
+};
 
 class PillarOverlay {
 public:
@@ -13,7 +28,14 @@ public:
     ~PillarOverlay() = default;
     
     // Render the overlay
-    void render(const std::array<float, NUM_PILLARS>& pillars, float fps, int entity_count);
+    void render(const PillarVector& pillars, float fps, int entity_count);
+    
+    // Render the photonic wrapper section
+    void render_wrapper_section(const PhotonicWrapper& wrapper);
+    
+    // Set the active wrapper to display
+    void set_active_wrapper(const PhotonicWrapper& w) { active_wrapper_ = w; has_wrapper_ = true; }
+    void clear_wrapper() { has_wrapper_ = false; }
     
     // Toggle visibility
     void toggle() { visible_ = !visible_; }
@@ -28,6 +50,10 @@ private:
     float pos_x_, pos_y_;
     float width_, height_;
     float alpha_;
+    
+    // Wrapper state
+    bool has_wrapper_;
+    PhotonicWrapper active_wrapper_;
     
     // Helper functions
     static const char* get_pillar_name(int idx);

@@ -58,6 +58,7 @@ typedef struct BoneSegment {
     uint32_t is_fractured;
     float total_capacity;
     uint32_t organ_count;
+    uint32_t organ_start;    // internal: index into organ list
 } BoneSegment;
 
 typedef struct MuscleStrand {
@@ -74,6 +75,7 @@ typedef struct MuscleGroup {
     float activation;
     uint32_t strand_start_idx;
     uint32_t strand_count;
+    float current_volume;    // internal
 } MuscleGroup;
 
 typedef struct Organ {

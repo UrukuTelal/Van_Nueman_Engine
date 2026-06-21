@@ -2,6 +2,7 @@
 
 #include "creature_renderer.h"
 #include "../biology/creature_system.h"
+#include "../scale/SemanticProjection.h"
 #include <algorithm>
 #include <cstring>
 #include <fstream>
@@ -76,6 +77,7 @@ bool CreatureRenderer::load_eye_model(const std::string& model_path,
         return true;
     }
     
+    if (vertices.empty()) return false;
     float min_x = vertices[0], max_x = vertices[0];
     float min_y = vertices[1], max_y = vertices[1];
     float min_z = vertices[2], max_z = vertices[2];
@@ -228,9 +230,23 @@ void CreatureRenderer::prepare_skeleton_render_data(const Skeleton* skeleton,
 
 void CreatureRenderer::apply_psv_visualization(CreatureRenderData& data,
                                                  const EntityPSV& psv) {
-    float awareness = (psv.pillars[0] + psv.pillars[1] + psv.pillars[2]) / 3.0f;
-    float harm = (psv.pillars[12] + psv.pillars[6] + psv.pillars[7]) / 3.0f;
-    float depth = (psv.pillars[15] + psv.pillars[14] + psv.pillars[13]) / 3.0f;
+    PillarStateVector psv_state;
+    for (int j = 0; j < NumPillars; j++) psv_state.pillars[j] = vn::fp20_t(psv.pillars[j]);
+    SymbolicProjection sp = SymbolicProjection::project(psv_state);
+    
+    float numinous = sp.numinous_warmth;
+    float heroic = sp.heroic_will;
+    float sacred = sp.sacred_boundary;
+    float harm_sym = sp.transformational_harm;
+    float love = sp.gravitational_love;
+    float memory = sp.ancestor_memory;
+    float abyss = sp.abyss_depth;
+    float flux = sp.flux_weaving;
+    float trickster = sp.trickster_phase;
+    
+    float awareness = (numinous + heroic + sacred) / 3.0f;
+    float harm = (harm_sym + love + memory) / 3.0f;
+    float depth = (abyss + flux + trickster) / 3.0f;
     
     data.color[0] = std::fmax(0.0f, std::fmin(1.0f, awareness));
     data.color[1] = std::fmax(0.0f, std::fmin(1.0f, harm));
@@ -255,7 +271,6 @@ bool CreatureRenderer::upload_to_gpu(VulkanRenderer* renderer) {
         b.start_x = bone.start_pos[0]; b.start_y = bone.start_pos[1]; b.start_z = bone.start_pos[2];
         b.end_x = bone.end_pos[0]; b.end_y = bone.end_pos[1]; b.end_z = bone.end_pos[2];
         b.radius = bone.radius;
-        b.r = bone.color[0]; b.g = bone.color[1]; b.b = bone.color[2]; b.a = bone.color[3];
         bones_gpu.push_back(b);
     }
     
@@ -278,7 +293,6 @@ bool CreatureRenderer::upload_bones_to_gpu(VulkanRenderer* renderer,
         b.start_x = bone.start_pos[0]; b.start_y = bone.start_pos[1]; b.start_z = bone.start_pos[2];
         b.end_x = bone.end_pos[0]; b.end_y = bone.end_pos[1]; b.end_z = bone.end_pos[2];
         b.radius = bone.radius;
-        b.r = bone.color[0]; b.g = bone.color[1]; b.b = bone.color[2]; b.a = bone.color[3];
         bones_gpu.push_back(b);
     }
     
@@ -298,8 +312,6 @@ bool CreatureRenderer::upload_muscles_to_gpu(VulkanRenderer* renderer,
         m.end_x = muscle.end_pos[0]; m.end_y = muscle.end_pos[1]; m.end_z = muscle.end_pos[2];
         m.radius = muscle.radius;
         m.activation = muscle.activation;
-        m.thickness = muscle.thickness;
-        m.r = muscle.color[0]; m.g = muscle.color[1]; m.b = muscle.color[2]; m.a = muscle.color[3];
         muscles_gpu.push_back(m);
     }
     
@@ -317,8 +329,7 @@ bool CreatureRenderer::upload_organs_to_gpu(VulkanRenderer* renderer,
         OrganGPU o = {};
         o.center_x = organ.position[0]; o.center_y = organ.position[1]; o.center_z = organ.position[2];
         o.radius = organ.radius;
-        o.r = organ.color[0]; o.g = organ.color[1]; o.b = organ.color[2]; o.a = organ.color[3];
-        o.pulse_intensity = organ.pulse_intensity;
+        o.type = organ.organ_type;
         organs_gpu.push_back(o);
     }
     

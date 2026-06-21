@@ -28,9 +28,8 @@ void main() {
 
     EntityPSV e = inout_entities.entities[id];
 
-    // Calculate harm average (pillars 6-11)
-    float harm_avg = (e.pillars[6] + e.pillars[7] + e.pillars[8] +
-                      e.pillars[9] + e.pillars[10] + e.pillars[11]) / 6.0;
+    // Use Harm pillar (12) as the shadow drift multiplier
+    float harm_avg = e.pillars[12];
 
     // Process shadow patterns
     for (int i = 0; i < NUM_PILLARS; i++) {

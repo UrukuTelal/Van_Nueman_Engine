@@ -10,8 +10,8 @@ int main() {
     std::cout << "Bob Agent Scenario - Van Nueman Ecosystem" << std::endl;
     
     // Bob agent login with WHT-encoded pillars
-    float bob_pillars[NUM_PILLARS];
-    for (int i = 0; i < NUM_PILLARS; i++) bob_pillars[i] = 0.5f;
+    float bob_pillars[NumPillars];
+    for (int i = 0; i < NumPillars; i++) bob_pillars[i] = 0.5f;
     uint32_t bob_uid = bob_agent_login("Bob", bob_pillars);
     std::cout << "Bob logged in, UID: " << bob_uid << std::endl;
     
@@ -32,13 +32,12 @@ int main() {
     float dt = 0.016f;  // 60 FPS
     Entity bob_entity;
     bob_entity.id = bob_uid;
-    bob_entity.energy = 100.0f;
-    bob_entity.flags.alive = 1;
+    bob_entity.flags.constrained = 0;
     
     BioState bob_bio = {50.0f, 0.0f, 0, false};
     
     int tick = 0;
-    while (bob_entity.flags.alive) {
+    while (!bob_entity.flags.constrained) {
         // 1. Update biology (food, reproduction, death)
         update_biology(&bob_entity, dt, &bob_bio);
         
@@ -55,8 +54,10 @@ int main() {
         qtable.training_steps = 0;
         for (int i = 0; i < ACTION_COUNT; i++) qtable.q_values[i] = 0.0f;
         
+        float input_pillars[NumPillars];
+        for (int i = 0; i < NumPillars; i++) input_pillars[i] = bob_entity.pillars[i];
         uint32_t action = EntityNeuralNet::select_action_cpu(
-            bob_entity.pillars.pillars, 
+            input_pillars, 
             qtable,
             true
         );
@@ -64,7 +65,7 @@ int main() {
         // 4. Execute action
         switch (action) {
             case ACTION_MOVE:
-                bob_entity.pos_x += 0.1f * bob_entity.pillars[PILLAR_FORCE];
+                bob_entity.pos_x = bob_entity.pos_x + vn::fp20_t(0.1f) * bob_entity.pillars[Force];
                 break;
             case ACTION_FIND_FOOD:
                 find_food(&bob_entity, &bob_bio);
@@ -78,12 +79,14 @@ int main() {
         float px = bob_entity.pos_x;
         float py = bob_entity.pos_y;
         float pz = 0.0f;
-        render_voxel_with_pillar_opacity(px, py, pz, 1.0f, bob_entity.pillars.pillars);
+        float pillar_floats[NumPillars];
+    for (int i = 0; i < NumPillars; i++) pillar_floats[i] = bob_entity.pillars.pillars[i];
+    render_voxel_with_pillar_opacity(px, py, pz, 1.0f, pillar_floats);
         
         tick++;
         if (tick % 100 == 0) {
             std::cout << "Tick " << tick 
-                      << ": Energy=" << bob_entity.energy 
+                      << ", CogState=" << bob_entity.constraint_level.to_float()
                       << ", Food=" << bob_bio.food_level 
                       << std::endl;
         }

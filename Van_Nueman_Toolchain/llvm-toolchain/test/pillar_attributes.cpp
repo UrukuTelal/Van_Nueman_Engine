@@ -3,7 +3,6 @@
 // are properly parsed by vncc
 
 #include "vn/PillarTypes.h"
-#include "vn/ScaledInt.h"
 
 // Test 1: PillarVector struct with attribute
 struct MyPillarVector : public vn::PillarStateVector {
@@ -24,10 +23,10 @@ void test_scaled() {
 // Test 3: Function using pillar vector
 void process_pillars(MyPillarVector& p) {
   // Access pillar values
-  p.p[(int)vn::PillarIndex::Awareness] = vn::to_scaled(0.5f);
+  p.p[(int)vn::PillarIndex::Awareness] = vn::fp20_t(0.5f);
 
   // Read back
-  float awareness = vn::from_scaled(p.p[(int)vn::PillarIndex::Awareness]);
+  float awareness = p.p[(int)vn::PillarIndex::Awareness].to_float();
 }
 
 int main() {

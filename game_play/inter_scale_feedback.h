@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <vector>
 #include "../audio/wht.h"  // Reuse existing WHT (WHT_N=32, WHT_LOG2_N=5)
+#include "../vn/PillarTypes.h"
 
 #ifndef MAX_SCALE_LEVELS
 #define MAX_SCALE_LEVELS 9  // 0=atom, 1=molecule, ..., 8=universe
@@ -76,11 +77,11 @@ private:
 
 // Fractal Governance: UID = PSV hash, scale from atom to universe
 // "Pillars + Skelly(structure) = UID"
-inline uint32_t compute_fractal_uid(const float psv[16], uint32_t scale_level) {
+inline uint32_t compute_fractal_uid(const vn::fp20_t psv[16], uint32_t scale_level) {
     // Combine PSV with scale level for unique cross-scale ID
     float combined[16];
     for (int i = 0; i < 16; i++) {
-        combined[i] = psv[i] + (float)scale_level * 0.01f;  // Scale affects UID slightly
+        combined[i] = psv[i].to_float() + (float)scale_level * 0.01f;  // Scale affects UID slightly
     }
     // Use Entity.h's compute_entity_id() logic
     uint32_t hash = 2166136261u;

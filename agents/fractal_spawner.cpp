@@ -2,6 +2,7 @@
 // Exponential growth: 1 -> 2 -> 4 -> 8 -> 16 -> 32 -> 64 -> 128
 
 #include "fractal_spawner.h"
+#include "../scale/SemanticProjection.h"
 #include <cstdlib>
 #include <ctime>
 #include <cstdio>
@@ -63,7 +64,7 @@ uint32_t FractalSpawner::recursive_spawn(const PillarStateVector& parent_psv,
         agent.cognition = new AgentCognition(agent.id);
         // Set initial PSV in cognition
         auto& cog_psv = agent.cognition->get_pillars();
-        for (int j = 0; j < NUM_PILLARS; j++) {
+        for (int j = 0; j < NumPillars; j++) {
             cog_psv[j] = agent.psv.pillars[j];
         }
         
@@ -80,7 +81,7 @@ void FractalSpawner::mutate_psv(const PillarStateVector& parent,
                                 PillarStateVector& child,
                                 uint32_t generation,
                                 float base_mutation_rate) {
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         float mutation = ((rand() % 100) - 50) / 100.0f * base_mutation_rate;
         float new_val = parent.pillars[i] + mutation;
         // Clamp to [0.0, 1.0]
@@ -89,8 +90,8 @@ void FractalSpawner::mutate_psv(const PillarStateVector& parent,
         child.pillars[i] = new_val;
     }
     
-    // Fractal Depth pillar (14) = generation / 10.0f
-    child.pillars[14] = (float)generation / 10.0f;
+    // Fractal flux_weaving (Flux projection, SymbolicProjection Layer 4)
+    child.pillars[Flux] = (float)generation / 10.0f;
     
     // Compute entity ID from PSV (Entity.h)
     // Same PSV = same entity identity
@@ -108,14 +109,14 @@ std::vector<FractalAgent*> FractalSpawner::get_generation(uint32_t gen) const {
 
 void FractalSpawner::log_to_blackboard(uint32_t gen, uint32_t agent_id, 
                                           const PillarStateVector& psv) const {
-    // Log format: timestamp, gen, agent_id, PSV
-    // Append to fractal_log.txt (in production use PillarAIColab bridge)
-    char cmd[512];
-    snprintf(cmd, sizeof(cmd), 
-             "echo \"%lu,gen%u,agent%u,PSV:%.2f,%.2f,...\" >> fractal_log.txt",
-             (unsigned long)time(nullptr), gen, agent_id, 
-             psv.pillars[0], psv.pillars[1]);
-    system(cmd);
+    CognitiveProjection cp = CognitiveProjection::project(psv);
+    FILE* f = fopen("fractal_log.txt", "a");
+    if (f) {
+        fprintf(f, "%lu,gen%u,agent%u,Cog:%.2f,%.2f,...\n",
+                (unsigned long)time(nullptr), gen, agent_id, 
+                cp.focus_inward, cp.agency);
+        fclose(f);
+    }
 }
 
 const char* FractalSpawner::get_model_for_generation(uint32_t gen) {

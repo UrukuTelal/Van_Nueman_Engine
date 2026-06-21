@@ -68,3 +68,4 @@ venv/
 # Temp files
 *.tmp
 *.temp
+nul

@@ -90,3 +90,62 @@ jobs:
         sudo apt-get install -y clang-format
         find . -name "*.cpp" -o -name "*.h" | xargs clang-format --dry-run --Werror
       continue-on-error: true
+
+  council-approval:
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install pytest httpx
+    
+    - name: Run Pillar Council unit tests
+      run: |
+        if [ -f "../Van_Nueman_AI/Van_Nueman_Social_Sim/pillar_council/test_council.py" ]; then
+          cd ../Van_Nueman_AI/Van_Nueman_Social_Sim
+          python -m pytest pillar_council/test_council.py -v --tb=short
+        else
+          echo "Council tests not found — skip"
+        fi
+      continue-on-error: true
+
+  adversarial-review:
+    runs-on: ubuntu-latest
+    needs: [build-linux]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install pytest
+
+    - name: Run adversarial review on changed files
+      run: |
+        CHANGED_FILES=$(git diff --name-only HEAD~1 2>/dev/null || echo "")
+        if [ -z "$CHANGED_FILES" ]; then
+          echo "No changed files to review"
+          exit 0
+        fi
+        if [ -f "../Van_Nueman_Agents/scripts/adversarial_review.py" ]; then
+          cd ../Van_Nueman_Agents
+          python -m scripts.adversarial_review --files $CHANGED_FILES || true
+        else
+          echo "Adversarial review script not found — skip"
+        fi
+      continue-on-error: true

@@ -44,18 +44,18 @@ public:
     void download_q_values(float* q_data, uint32_t num_entities);
     
     // Select action for single entity (CPU fallback)
-    static uint32_t select_action_cpu(const float pillars[NUM_PILLARS], 
+    static uint32_t select_action_cpu(const float pillars[NumPillars], 
                                       EntityQTable& qtable, 
                                       bool explore = true);
     
     // Observe and learn (simplified Q-learning update)
     static void observe_cpu(EntityQTable& qtable,
-                               const float old_pillars[NUM_PILLARS],
+                               const float old_pillars[NumPillars],
                                uint32_t action,
                                float reward,
-                               const float new_pillars[NUM_PILLARS]);
+                               const float new_pillars[NumPillars]);
 
-    static float compute_pillar_reward(const float pillars[NUM_PILLARS]);
+    static float compute_pillar_reward(const float pillars[NumPillars]);
     
 private:
     class Impl;  // PIML pattern for Vulkan internals

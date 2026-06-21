@@ -37,8 +37,9 @@ public:
     std::map<std::pair<Value*, Value*>, Value*> MatrixLoads;
     
     for (BasicBlock &BB : F) {
-      for (auto It = BB.begin(); It != BB.end(); ++It) {
+      for (auto It = BB.begin(); It != BB.end(); ) {
         Instruction &I = *It;
+        ++It;  // advance before potential erase
         
         // Check for load from interaction_matrix
         LoadInst *LI = dyn_cast<LoadInst>(&I);

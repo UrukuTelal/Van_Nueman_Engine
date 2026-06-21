@@ -21,7 +21,7 @@ struct ServerInfoImpl {
     int port;
     uint32_t player_count;
     uint32_t max_players;
-    float pillars[NUM_PILLARS];
+    float pillars[NumPillars];
     bool is_approved;
     bool is_public;
     time_t last_heartbeat;
@@ -74,20 +74,22 @@ int32_t approval_register_server(ApprovalSystem asys, const ServerInfo* info) {
     // Check capacity
     if (impl->server_count >= impl->server_capacity) {
         impl->server_capacity *= 2;
-        impl->servers = (ServerInfoImpl*)realloc(impl->servers, 
+        ServerInfoImpl* new_servers = (ServerInfoImpl*)realloc(impl->servers, 
                                                   sizeof(ServerInfoImpl) * impl->server_capacity);
+        if (!new_servers) return -1;
+        impl->servers = new_servers;
     }
     
     // Add new
     ServerInfoImpl* server = &impl->servers[impl->server_count++];
     memset(server, 0, sizeof(ServerInfoImpl));
     server->id = info->id;
-    strncpy(server->name, info->name, 127);
-    strncpy(server->ip, info->ip, 63);
+    strncpy(server->name, info->name, 127); server->name[127] = '\0';
+    strncpy(server->ip, info->ip, 63); server->ip[63] = '\0';
     server->port = info->port;
     server->player_count = info->player_count;
     server->max_players = info->max_players;
-    memcpy(server->pillars, info->pillars, sizeof(float) * NUM_PILLARS);
+    memcpy(server->pillars, info->pillars, sizeof(float) * NumPillars);
     server->is_approved = false;  // Require approval by default
     server->is_public = info->is_public;
     server->last_heartbeat = time(nullptr);

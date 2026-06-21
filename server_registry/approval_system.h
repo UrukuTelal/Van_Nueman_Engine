@@ -17,7 +17,7 @@ typedef struct ServerInfo {
     int port;
     uint32_t player_count;
     uint32_t max_players;
-    float pillars[NUM_PILLARS];  // Server's pillar state
+    float pillars[NumPillars];  // Server's pillar state
     bool is_approved;
     bool is_public;
 } ServerInfo;

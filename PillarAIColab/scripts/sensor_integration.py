@@ -11,8 +11,9 @@ from datetime import datetime
 
 def init_ds18b20():
     """Initialize DS18B20 temperature sensor."""
-    os.system('modprobe w1-gpio')
-    os.system('modprobe w1-therm')
+    import subprocess
+    subprocess.run(['modprobe', 'w1-gpio'], capture_output=True)
+    subprocess.run(['modprobe', 'w1-therm'], capture_output=True)
     base_dir = '/sys/bus/w1/devices/'
     device_folders = glob.glob(base_dir + '28*')
     return device_folders
@@ -86,4 +87,4 @@ def run_shadow_thread_with_sensors(event_id, production_logic):
 
 if __name__ == "__main__":
     print("Physical Sensor Integration for Laundromat Signal")
-    print("TODO[INTEGRATION]: Complete DHT22 and DS18B20 implementation")
+    print("DS18B20 and DHT22 implementations are complete (see init_ds18b20, read_ds18b20, init_dht22, read_dht22)")

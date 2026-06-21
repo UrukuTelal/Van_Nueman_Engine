@@ -8,8 +8,8 @@
 // From FULL_ARCHITECTURE.md: neuroevolution/boundaries - Operator-set constraints
 
 #ifndef FROM_SCALED
-#define FROM_SCALED(x) (x)
-#define TO_SCALED(x) (x)
+#define FROM_SCALED(x) (static_cast<float>(x))
+#define TO_SCALED(x) (vn::fp20_t(x))
 #endif
 
 struct Boundary {
@@ -45,7 +45,7 @@ public:
     }
 
     void constrain_pillar_vector(PillarStateVector& psv) {
-        for (int i = 0; i < NUM_PILLARS; i++) {
+        for (int i = 0; i < NumPillars; i++) {
             float val = FROM_SCALED(psv.pillars[i]);
             for (const auto& b : constraints) {
                 if (b.pillar == i) {

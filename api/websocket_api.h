@@ -35,7 +35,7 @@ public:
     
     // Send agent telemetry
     void broadcast_agent_update(int agent_id);
-    void broadcast_pillar_update(const std::array<float, NUM_PILLARS>& pillars);
+    void broadcast_pillar_update(const std::array<float, NumPillars>& pillars);
     void broadcast_tick();
     
     // Handle incoming messages
@@ -46,8 +46,8 @@ private:
     
     // JSON builders
     static std::string build_agent_json(int agent_id, float x, float y, float z,
-                                        const std::array<float, NUM_PILLARS>& pillars);
-    static std::string build_pillar_json(const std::array<float, NUM_PILLARS>& pillars);
+                                        const PillarVector& pillars);
+    static std::string build_pillar_json(const PillarVector& pillars);
     static std::string build_tick_json(uint32_t tick_count);
 };
 

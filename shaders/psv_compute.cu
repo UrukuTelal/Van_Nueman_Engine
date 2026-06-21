@@ -2,13 +2,12 @@
 #define __OPENCL_VERSION__ 120
 #endif
 
-#define NUM_PILLARS 16
 #define MAX_ENTITIES 1024
 #define MAX_DREAM_EPISODES 64
 
 typedef struct {
-    float pillars[NUM_PILLARS];
-    float shadow_patterns[NUM_PILLARS];
+    float pillars[NumPillars];
+    float shadow_patterns[NumPillars];
     float lucid_level;
     float vividness;
     float shadow_emergence;
@@ -71,7 +70,7 @@ __kernel void process_shadows(
     float harm_avg = (e.pillars[6] + e.pillars[7] + e.pillars[8] +
                       e.pillars[9] + e.pillars[10] + e.pillars[11]) / 6.0f;
 
-    for (int i = 0; i < NUM_PILLARS; i++) {
+    for (int i = 0; i < NumPillars; i++) {
         float drift = (e.pillars[i] - e.shadow_patterns[i]) * harm_avg * delta_time * 0.01f;
         e.shadow_patterns[i] += drift;
         e.shadow_patterns[i] = clamp(e.shadow_patterns[i], -1.0f, 1.0f);

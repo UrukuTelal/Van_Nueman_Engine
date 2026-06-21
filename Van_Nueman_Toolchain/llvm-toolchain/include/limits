@@ -1,0 +1,114 @@
+#ifndef _VN_TOOLCHAIN_LIMITS_H
+#define _VN_TOOLCHAIN_LIMITS_H
+
+#include <cstdint>
+
+namespace std {
+
+template<class T>
+struct numeric_limits {
+  static constexpr bool is_specialized = false;
+  static constexpr T min() noexcept { return T(); }
+  static constexpr T max() noexcept { return T(); }
+  static constexpr T lowest() noexcept { return T(); }
+};
+
+template<>
+struct numeric_limits<bool> {
+  static constexpr bool is_specialized = true;
+  static constexpr bool min() noexcept { return false; }
+  static constexpr bool max() noexcept { return true; }
+  static constexpr bool lowest() noexcept { return false; }
+};
+
+template<>
+struct numeric_limits<char> {
+  static constexpr bool is_specialized = true;
+  static constexpr char min() noexcept { return char(-128); }
+  static constexpr char max() noexcept { return char(127); }
+  static constexpr char lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<signed char> {
+  static constexpr bool is_specialized = true;
+  static constexpr signed char min() noexcept { return -128; }
+  static constexpr signed char max() noexcept { return 127; }
+  static constexpr signed char lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<unsigned char> {
+  static constexpr bool is_specialized = true;
+  static constexpr unsigned char min() noexcept { return 0; }
+  static constexpr unsigned char max() noexcept { return 255; }
+  static constexpr unsigned char lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<short> {
+  static constexpr bool is_specialized = true;
+  static constexpr short min() noexcept { return -32768; }
+  static constexpr short max() noexcept { return 32767; }
+  static constexpr short lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<unsigned short> {
+  static constexpr bool is_specialized = true;
+  static constexpr unsigned short min() noexcept { return 0; }
+  static constexpr unsigned short max() noexcept { return 65535; }
+  static constexpr unsigned short lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<int> {
+  static constexpr bool is_specialized = true;
+  static constexpr int min() noexcept { return -2147483647 - 1; }
+  static constexpr int max() noexcept { return 2147483647; }
+  static constexpr int lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<unsigned int> {
+  static constexpr bool is_specialized = true;
+  static constexpr unsigned int min() noexcept { return 0U; }
+  static constexpr unsigned int max() noexcept { return 4294967295U; }
+  static constexpr unsigned int lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<long> {
+  static constexpr bool is_specialized = true;
+  static constexpr long min() noexcept { return -2147483647L - 1L; }
+  static constexpr long max() noexcept { return 2147483647L; }
+  static constexpr long lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<unsigned long> {
+  static constexpr bool is_specialized = true;
+  static constexpr unsigned long min() noexcept { return 0UL; }
+  static constexpr unsigned long max() noexcept { return 4294967295UL; }
+  static constexpr unsigned long lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<long long> {
+  static constexpr bool is_specialized = true;
+  static constexpr long long min() noexcept { return (-9223372036854775807LL - 1LL); }
+  static constexpr long long max() noexcept { return 9223372036854775807LL; }
+  static constexpr long long lowest() noexcept { return min(); }
+};
+
+template<>
+struct numeric_limits<unsigned long long> {
+  static constexpr bool is_specialized = true;
+  static constexpr unsigned long long min() noexcept { return 0ULL; }
+  static constexpr unsigned long long max() noexcept { return 18446744073709551615ULL; }
+  static constexpr unsigned long long lowest() noexcept { return min(); }
+};
+
+} // namespace std
+
+#endif

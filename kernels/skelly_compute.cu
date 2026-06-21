@@ -1,103 +1,29 @@
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-#include <cmath>
-
-#define MAX_BONES 1000000
-#define MAX_SEGMENTS 1000000
-#define MAX_MUSCLES 2000000
-#define MAX_ORGANS 500000
-#define MAX_TRANSPORTS 500000
-
-// Float3 operations (CUDA built-in float3 used, but defining helpers)
-__device__ float3 make_float3(float x, float y, float z) {
-    float3 r; r.x = x; r.y = y; r.z = z; return r;
-}
-
-// Bone node (joint)
-struct BoneNode {
-    float3 local_pos;
-    float3 global_pos;
-    uint32_t parent_idx;
-    uint32_t is_fractured;
-    float constraint_pitch_min, constraint_pitch_max;
-    float constraint_yaw_min, constraint_yaw_max;
-    float constraint_roll_min, constraint_roll_max;
-};
-
-// Bone segment (between two nodes)
-struct BoneSegment {
-    uint32_t start_node, end_node;
-    float flexibility;       // 0 = rigid, 1 = very flexible
-    float break_threshold;
-    uint32_t is_fractured;
-    float total_capacity;    // volume capacity for muscles/organs
-    uint32_t organ_count;
-    uint32_t organ_start;    // index into organ list
-};
-
-// Muscle strand (part of a muscle group)
-struct MuscleStrand {
-    float base_r;
-    float current_r;
-    float origin_rot, insertion_rot;
-};
-
-// Volumetric muscle group
-struct MuscleGroup {
-    uint32_t origin_node, insertion_node;
-    uint32_t strand_start;   // index into strand list
-    uint32_t strand_count;
-    float activation;        // 0-1
-    float current_volume;
-};
-
-// Organ (energy production, processing, etc.)
-struct Organ {
-    uint32_t type;           // 0=pump, 1=valve, 2=power_plant, 3=factory
-    float volume;
-    float active_state;      // 0-1 pulse intensity
-    float energy_output;
-    uint32_t segment_idx;    // which segment this organ is attached to
-};
-
-// Transport system (Conduit/Gate/Driver from UniversalTerms)
-struct Transport {
-    uint32_t start_node, end_node;
-    float flow_rate;
-    float resistance;
-    float pressure;
-    uint32_t is_severed;
-    float elasticity;
-};
-
-// Interstitial fluid (specialized transport with turgor pressure)
-struct InterstitialFluid {
-    uint32_t transport_idx;
-    uint32_t segment_idx;
-    float turgor_pressure;
-};
-
-// Entity Skelly instance
-struct SkellyInstance {
-    uint32_t entity_id;
-    uint32_t bone_start, bone_count;
-    uint32_t segment_start, segment_count;
-    uint32_t muscle_start, muscle_count;
-    uint32_t organ_start, organ_count;
-    uint32_t transport_start, transport_count;
-};
+#include "skelly_shared.cuh"
 
 // Update bone global positions (recursive, done in kernel)
 __global__ void skelly_update_bones_kernel(BoneNode* bones, uint32_t count) {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count) return;
 
-    BoneNode& node = bones[idx];
-    if (node.parent_idx == (uint32_t)-1 || node.is_fractured) {
-        node.global_pos = node.local_pos;
-    } else {
-        BoneNode& parent = bones[node.parent_idx];
-        node.global_pos = parent.global_pos + node.local_pos;
+    // Walk up hierarchy to find root, then compute positions root-to-leaf
+    // This ensures each thread computes all ancestors before its own bone,
+    // avoiding cross-thread races on parent->global_pos reads.
+    uint32_t chain[64];
+    int depth = 0;
+    uint32_t cur = idx;
+    while (cur != (uint32_t)-1 && cur < count && depth < 64) {
+        chain[depth++] = cur;
+        cur = bones[cur].parent_idx;
+    }
+
+    // Compute from root (last in chain) down to current (first in chain)
+    for (int i = depth - 1; i >= 0; --i) {
+        uint32_t b = chain[i];
+        if (bones[b].parent_idx == (uint32_t)-1 || bones[b].is_fractured) {
+            bones[b].global_pos = bones[b].local_pos;
+        } else {
+            bones[b].global_pos = bones[bones[b].parent_idx].global_pos + bones[b].local_pos;
+        }
     }
 }
 
@@ -114,7 +40,8 @@ __global__ void skelly_update_muscles_kernel(MuscleGroup* muscles, MuscleStrand*
     float curr_len = length(insertion.global_pos - origin.global_pos);
     float rest_len = curr_len;  // Would store rest length separately
 
-    float expansion = (rest_len > 0 && curr_len > 0) ? sqrtf(rest_len / curr_len) : 1.0f;
+    float ratio = (rest_len > 1e-8f && curr_len > 1e-8f) ? fminf(rest_len / curr_len, 1e8f) : 1.0f;
+    float expansion = sqrtf(ratio);
 
     // Update all strands
     for (uint32_t s = 0; s < mg.strand_count; s++) {
@@ -126,7 +53,7 @@ __global__ void skelly_update_muscles_kernel(MuscleGroup* muscles, MuscleStrand*
     mg.current_volume = 0.0f;
     for (uint32_t s = 0; s < mg.strand_count; s++) {
         MuscleStrand& strand = strands[mg.strand_start + s];
-        mg.current_volume += M_PI * strand.current_r * strand.current_r * curr_len;
+        mg.current_volume += SK_PI * strand.current_r * strand.current_r * curr_len;
     }
 }
 
@@ -136,6 +63,7 @@ __global__ void skelly_operate_organs_kernel(Organ* organs, uint32_t count,
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count) return;
 
+    (void)entity_pillars;
     Organ& organ = organs[idx];
 
     if (organ.type == 2) {  // power_plant
