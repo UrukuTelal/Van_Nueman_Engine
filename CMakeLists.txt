@@ -133,6 +133,7 @@ include_directories(${CMAKE_SOURCE_DIR}/quantum)       # Phase 1: quantum integr
 include_directories(${CMAKE_SOURCE_DIR}/fll/include)    # FLL Engine
 include_directories(${CMAKE_SOURCE_DIR}/shared_memory/include)  # SHM IPC
 include_directories(${CMAKE_SOURCE_DIR}/cognition)                # Phase 7: FUGURE
+include_directories(${CMAKE_SOURCE_DIR}/vnes)                    # VNES Kelvin-cell ecosystem
 #==================== SOURCE DEFINITIONS ====================
 
 # Simulation library sources
@@ -536,6 +537,12 @@ add_library(vnbio STATIC ${BIOLOGY_SOURCES})
 # Create GUI library (NEW)
 add_library(vngui STATIC ${GUI_SOURCES})
 
+# Create VNES library (Kelvin-cell ecosystem)
+set(VNES_SOURCES
+    vnes/vnes_library.cpp
+)
+add_library(vnvnes STATIC ${VNES_SOURCES})
+
 # Create gameplay library
 set(GAMEPLAY_SOURCES
     game_play/crispr_vault.cpp
@@ -779,6 +786,7 @@ target_link_libraries(van-nueman-game
     vnbio
     vngui
     vnfll
+    vnvnes
     ${VULKAN_LIBRARIES}
     $<$<BOOL:${glfw3_FOUND}>:glfw>
     $<$<BOOL:${PostgreSQL_FOUND}>:${PostgreSQL_LIBRARIES}>

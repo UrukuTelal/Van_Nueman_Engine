@@ -1,0 +1,331 @@
+{
+  "spec_version": "0.1",
+  "name": "VNES — Van Neumann Ecosystem Substrate",
+  "description": "Modular ecological construction framework around the Kelvin cell",
+  "license": "MIT",
+
+  "geometry": {
+    "cell_type": "RegularTruncatedOctahedron",
+    "circumscribed_diameter_mm": 250.0,
+    "circumscribed_radius_mm": 125.0,
+    "edge_length_mm": 79.06,
+    "volume_liters": 5.58,
+    "faces": {
+      "squares": 6,
+      "hexagons": 8,
+      "total": 14
+    },
+    "vertices": 24,
+    "edges": 36,
+    "frame_thickness_mm": 15.0,
+
+    "snap_fit": {
+      "peg_diameter_mm": 8.0,
+      "peg_depth_mm": 12.0,
+      "clearance_mm": 0.25,
+      "sockets_per_square_face": 4
+    },
+
+    "growth_face": {
+      "openings_min_mm": 20.0,
+      "openings_max_mm": 30.0
+    }
+  },
+
+  "lattice": {
+    "type": "BodyCenteredCubic",
+    "spacing_mm": 158.11,
+    "half_spacing_mm": 79.055,
+    "neighbor_count": 14,
+    "square_neighbors": 6,
+    "hex_neighbors": 8,
+    "square_face_offsets": [
+      [2, 0, 0], [-2, 0, 0],
+      [0, 2, 0], [0, -2, 0],
+      [0, 0, 2], [0, 0, -2]
+    ],
+    "hex_face_offsets": [
+      [1, 1, 1], [1, 1, -1], [1, -1, 1], [1, -1, -1],
+      [-1, 1, 1], [-1, 1, -1], [-1, -1, 1], [-1, -1, -1]
+    ]
+  },
+
+  "face_roles": {
+    "LoadBearing": {
+      "id": 0,
+      "type": "square",
+      "description": "Full structural load transfer (VNE-A)"
+    },
+    "StructuralFlange": {
+      "id": 1,
+      "type": "square",
+      "description": "Flange connection for non-load-bearing cells (VNE-B/C)"
+    },
+    "StaticStructural": {
+      "id": 2,
+      "type": "square",
+      "description": "Rigid non-load-bearing structural coupling (VNE-D)"
+    },
+    "StructuralSeal": {
+      "id": 3,
+      "type": "square",
+      "description": "Sealed structural interface (VNE-E)"
+    },
+    "CapillaryFlow": {
+      "id": 4,
+      "type": "hex",
+      "description": "Wicking and moisture transport (VNE-A)"
+    },
+    "FluidAirExchange": {
+      "id": 5,
+      "type": "hex",
+      "description": "Air and water exchange for growth (VNE-B)"
+    },
+    "HydroponicFlow": {
+      "id": 6,
+      "type": "hex",
+      "description": "Nutrient solution flow (VNE-C)"
+    },
+    "MainVascularPath": {
+      "id": 7,
+      "type": "hex",
+      "description": "Primary conduit trunk passage (VNE-D)"
+    },
+    "UtilityTrunk": {
+      "id": 8,
+      "type": "hex",
+      "description": "Cable and service trunk (VNE-E)"
+    }
+  },
+
+  "compatibility_matrix": {
+    "square_square": [
+      {"a": "LoadBearing", "b": "LoadBearing", "compatible": true, "mode": "full_load_transfer"},
+      {"a": "LoadBearing", "b": "StructuralFlange", "compatible": true, "mode": "structural_support"},
+      {"a": "LoadBearing", "b": "StaticStructural", "compatible": true, "mode": "rigid_coupling"},
+      {"a": "LoadBearing", "b": "StructuralSeal", "compatible": true, "mode": "sealed_interface"},
+      {"a": "StructuralFlange", "b": "StructuralFlange", "compatible": true, "mode": "flange_to_flange"},
+      {"a": "StructuralFlange", "b": "StaticStructural", "compatible": true, "mode": "mixed_structural"},
+      {"a": "StructuralFlange", "b": "StructuralSeal", "compatible": true, "mode": "mixed_utility"},
+      {"a": "StaticStructural", "b": "StaticStructural", "compatible": true, "mode": "rigid_structural"},
+      {"a": "StaticStructural", "b": "StructuralSeal", "compatible": true, "mode": "structural_utility_transition"},
+      {"a": "StructuralSeal", "b": "StructuralSeal", "compatible": true, "mode": "sealed_utility"}
+    ],
+    "hex_hex": {
+      "all_compatible": true,
+      "note": "All hex faces are mechanically identical. Compatibility is always true."
+    },
+    "square_hex": {
+      "all_incompatible": true,
+      "note": "Square and hex faces have incompatible geometries and can never mate."
+    }
+  },
+
+  "variants": [
+    {
+      "id": "VNE-A-250",
+      "name": "Structural Core",
+      "description": "Load-bearing skeleton with Schwarz P minimal surface interior",
+      "load_bearing": true,
+      "compressive_priority": 0.95,
+      "fluid_priority": 0.15,
+      "bio_support": ["Mycelium", "Bacteria"],
+      "pore": {
+        "min_mm": 1.0,
+        "max_mm": 3.0,
+        "distribution": "uniform"
+      },
+      "flow": {
+        "airflow": false,
+        "waterflow": true,
+        "root_passage": false,
+        "mycelium_passage": true
+      },
+      "square_face_role": "LoadBearing",
+      "hex_face_role": "CapillaryFlow",
+      "manufacturing": {
+        "frame_thickness_mm": 15.0,
+        "supportless": true,
+        "min_wall_mm": 1.2,
+        "min_feature_mm": 0.8
+      }
+    },
+    {
+      "id": "VNE-B-250",
+      "name": "Harvest Surface",
+      "description": "Plant production with density-gradient gyroid and growth face openings",
+      "load_bearing": false,
+      "compressive_priority": 0.40,
+      "fluid_priority": 0.60,
+      "bio_support": ["Mycelium", "Bacteria", "PlantRoots", "Invertebrates"],
+      "pore": {
+        "min_mm": 3.0,
+        "max_mm": 6.0,
+        "distribution": "gradient_toward_growth"
+      },
+      "flow": {
+        "airflow": true,
+        "waterflow": true,
+        "root_passage": false,
+        "mycelium_passage": true
+      },
+      "square_face_role": "StructuralFlange",
+      "hex_face_role": "FluidAirExchange",
+      "has_growth_face": true,
+      "manufacturing": {
+        "frame_thickness_mm": 15.0,
+        "supportless": true,
+        "min_wall_mm": 1.2,
+        "min_feature_mm": 0.8
+      }
+    },
+    {
+      "id": "VNE-C-250",
+      "name": "Universal Rooting",
+      "description": "Hydroponics and microbial habitat with open-cell gyroid",
+      "load_bearing": false,
+      "compressive_priority": 0.40,
+      "fluid_priority": 0.60,
+      "bio_support": ["Mycelium", "Bacteria", "PlantRoots", "Invertebrates"],
+      "pore": {
+        "min_mm": 3.0,
+        "max_mm": 6.0,
+        "distribution": "uniform"
+      },
+      "flow": {
+        "airflow": true,
+        "waterflow": true,
+        "root_passage": true,
+        "mycelium_passage": true
+      },
+      "square_face_role": "StructuralFlange",
+      "hex_face_role": "HydroponicFlow",
+      "manufacturing": {
+        "frame_thickness_mm": 15.0,
+        "supportless": true,
+        "min_wall_mm": 1.2,
+        "min_feature_mm": 0.8
+      }
+    },
+    {
+      "id": "VNE-D-250",
+      "name": "Transport Spine",
+      "description": "Fluid and air backbone with 3 intersecting vascular trunks",
+      "load_bearing": false,
+      "compressive_priority": 0.30,
+      "fluid_priority": 0.90,
+      "bio_support": ["Mycelium", "Bacteria"],
+      "pore": {
+        "min_mm": 3.0,
+        "max_mm": 6.0,
+        "distribution": "uniform"
+      },
+      "flow": {
+        "airflow": true,
+        "waterflow": true,
+        "root_passage": false,
+        "mycelium_passage": true
+      },
+      "square_face_role": "StaticStructural",
+      "hex_face_role": "MainVascularPath",
+      "conduits": {
+        "count": 3,
+        "diameter_mm": 20.0,
+        "junction_blend_radius_mm": 4.0
+      },
+      "manufacturing": {
+        "frame_thickness_mm": 15.0,
+        "supportless": true,
+        "min_wall_mm": 1.2,
+        "min_feature_mm": 0.8
+      }
+    },
+    {
+      "id": "VNE-E-250",
+      "name": "Utility Service",
+      "description": "Instrumentation and utility cell with cable conduits and sensor mounts",
+      "load_bearing": false,
+      "compressive_priority": 0.25,
+      "fluid_priority": 0.50,
+      "bio_support": ["Mycelium", "Bacteria"],
+      "pore": {
+        "min_mm": 3.0,
+        "max_mm": 6.0,
+        "distribution": "uniform"
+      },
+      "flow": {
+        "airflow": true,
+        "waterflow": true,
+        "root_passage": false,
+        "mycelium_passage": true
+      },
+      "square_face_role": "StructuralSeal",
+      "hex_face_role": "UtilityTrunk",
+      "utility": {
+        "cable_conduits": 4,
+        "cable_conduit_diameter_mm": 8.0,
+        "fluid_channels": 2,
+        "fluid_channel_diameter_mm": 6.0,
+        "sensor_mounts": [
+          {"name": "moisture", "diameter_mm": 12.0},
+          {"name": "temperature", "diameter_mm": 12.0},
+          {"name": "humidity", "diameter_mm": 12.0},
+          {"name": "pH", "diameter_mm": 12.0},
+          {"name": "flow", "diameter_mm": 12.0},
+          {"name": "CO2", "diameter_mm": 12.0}
+        ],
+        "has_inspection_port": true,
+        "inspection_port_diameter_mm": 30.0
+      },
+      "manufacturing": {
+        "frame_thickness_mm": 15.0,
+        "supportless": true,
+        "min_wall_mm": 1.2,
+        "min_feature_mm": 0.8
+      }
+    }
+  ],
+
+  "placement_rules": [
+    {"priority": 10, "condition": "load_bearing == true", "variant": "VNE-A-250"},
+    {"priority": 8, "condition": "transport_required == true", "variant": "VNE-D-250"},
+    {"priority": 7, "condition": "root_zone == true", "variant": "VNE-C-250"},
+    {"priority": 6, "condition": "harvest_surface == true", "variant": "VNE-B-250"},
+    {"priority": 5, "condition": "instrumentation == true", "variant": "VNE-E-250"},
+    {"priority": 1, "condition": "default", "variant": "VNE-A-250"}
+  ],
+
+  "marching_cubes": {
+    "default_grid_resolution": 128,
+    "iso_level": 0.0,
+    "table": "standard_16_cube_256_entry"
+  },
+
+  "svo_integration": {
+    "voxel_scale_mm": 2.0,
+    "voxels_per_cell": 63,
+    "material_id_offset": 10,
+    "materials": {
+      "10": "VNE-A-250",
+      "11": "VNE-B-250",
+      "12": "VNE-C-250",
+      "13": "VNE-D-250",
+      "14": "VNE-E-250"
+    },
+    "simulation_resolutions": {
+      "structural_load": "10mm (25^3 / cell)",
+      "fluid_flow": "2mm (125^3 / cell)",
+      "biological_growth": "1mm (250^3 / cell)",
+      "light_penetration": "5mm (50^3 / cell)"
+    }
+  },
+
+  "fabrication_constraints": {
+    "min_wall_thickness_mm": 1.2,
+    "min_feature_size_mm": 0.8,
+    "supportless": true,
+    "peg_clearance_mm": 0.25,
+    "recommended_nozzle_mm": 0.4,
+    "recommended_layer_height_mm": 0.2
+  }
+}

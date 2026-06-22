@@ -34,6 +34,7 @@ __pycache__/
 # OS junk
 Thumbs.db
 .DS_Store
+desktop.ini
 
 # Binary assets (tracked via LFS or separate asset pipeline)
 *.mp3
@@ -54,6 +55,9 @@ assets/audio/
 assets/fonts/
 assets/models/
 assets/textures/
+
+# Python compiled extensions (platform-specific)
+*.pyd
 
 # Python virtual environments
 env/

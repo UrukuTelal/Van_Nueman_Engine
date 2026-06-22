@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "pybind11>=2.12"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vnes-generator"
+version = "0.1.0"
+description = "Van Neumann Ecosystem Substrate — Kelvin-cell construction framework"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+viz = ["trimesh>=4.0"]
+full = ["scikit-image>=0.20", "trimesh>=4.0"]
+
+[project.scripts]
+vnes = "vnes.cli:cli"
