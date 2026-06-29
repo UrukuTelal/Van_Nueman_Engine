@@ -64,6 +64,25 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(CURL QUIET)
 find_package(ZeroMQ CONFIG QUIET)
+
+# Testing (needed before subdirectories that call add_test)
+enable_testing()
+include(CTest)
+
+# MLIR: optional VNES compiler backend
+set(MLIR_DIR "C:/Users/aobie/clang+llvm-mlir-22.1.0/lib/cmake/mlir" CACHE PATH "Path to MLIRConfig.cmake")
+if(EXISTS "${MLIR_DIR}/MLIRConfig.cmake")
+    find_package(MLIR CONFIG QUIET)
+    if(MLIR_FOUND)
+        message(STATUS "MLIR found: ${MLIR_DIR}")
+        add_compile_definitions(VN_USE_MLIR)
+        set(VN_USE_MLIR TRUE CACHE INTERNAL "MLIR-enabled for VNES dialect pass")
+        # VNES MLIR dialect pass (mlir-opt plugin)
+        add_subdirectory(mlir/vnes)
+    endif()
+else()
+    message(STATUS "MLIR not found (set MLIR_DIR to enable)")
+endif()
 # vcpkg include path needed unconditionally (e.g. llm_worker.cpp uses zmq.h)
 if(EXISTS "C:/vcpkg/installed/x64-windows/include")
     include_directories("C:/vcpkg/installed/x64-windows/include")
@@ -344,6 +363,7 @@ target_link_libraries(vn-hopf-pid-demo
     vnrendering
     vnentityneuro
     vnbio
+    vnvnes
     Vulkan::Vulkan
     $<$<BOOL:${glfw3_FOUND}>:glfw>
     $<$<BOOL:${CURL_FOUND}>:CURL::libcurl>
@@ -818,7 +838,7 @@ if(glfw3_FOUND)
     add_compile_definitions(HAVE_GLFW)
 endif()
 
-# UGC SPIR-V pipeline for kernel compilation (replaces deprecated vncc)
+# UGC SPIR-V pipeline for kernel compilation
 set(UGC_EXECUTABLE "C:/Projects/ugc-compiler/build/Release/ugc.exe")
 set(UGC_BIN_EXECUTABLE "C:/Projects/ugc-compiler/bin/ugc.exe")
 if(EXISTS "${UGC_EXECUTABLE}")
@@ -844,10 +864,9 @@ if(EXISTS "${UGC_COMPILER}")
     set(UGC_CUDAQ_INCLUDE_DIR "${CUDAQ_INSTALL_DIR}/include")
     
     # Find all kernel source files (UGC compiles .cpp to SPIR-V)
-    # Exclude render_vulkan.cpp (it's GLSL, not C++) and any non-vncc files
+    # Exclude render_vulkan.cpp (it's GLSL, not C++)
     file(GLOB KERNEL_SOURCES "${CMAKE_SOURCE_DIR}/kernels/*.cpp")
     list(FILTER KERNEL_SOURCES EXCLUDE REGEX "render_vulkan\\.cpp$")
-    list(FILTER KERNEL_SOURCES EXCLUDE REGEX "voxel_svo\\.cpp$")
     
     # Collect SPV outputs for dependency tracking
     set(KERNEL_SPV_OUTPUTS "")
@@ -856,6 +875,7 @@ if(EXISTS "${UGC_COMPILER}")
     add_custom_command(
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/kernels/.dir"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/kernels"
+        COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_CURRENT_BINARY_DIR}/kernels/.dir"
     )
     
     # Compile each kernel .cpp to .spv using ugc-compiler
@@ -958,16 +978,12 @@ if(BUILD_SERVER_REGISTRY)
     target_link_libraries(vn-server-registry vnnetwork vncore)
 endif()
 
-# Testing
-enable_testing()
-include(CTest)
-
 # Test executable
-add_executable(VanNuemanTests tests/test_main.cpp)
+add_executable(VanNuemanTests tests/test_main.cpp tests/test_vnes_svo_validation.cpp)
 if(TARGET pillar_codegen)
     add_dependencies(VanNuemanTests pillar_codegen)
 endif()
-target_link_libraries(VanNuemanTests vncore vnphysics vnneuroevolution vnagents vnscene vnaudio vnapi vnsimulation vnfll $<$<BOOL:${CURL_FOUND}>:CURL::libcurl> ${CUDAQ_LIBS})
+target_link_libraries(VanNuemanTests vncore vnphysics vnneuroevolution vnagents vnscene vnaudio vnapi vnsimulation vnfll vnvnes Vulkan::Vulkan $<$<BOOL:${CURL_FOUND}>:CURL::libcurl> ${CUDAQ_LIBS} $<$<BOOL:${ZeroMQ_FOUND}>:libzmq>)
 if(DEFINED VNCUDA_DLINK_OBJ)
     target_sources(VanNuemanTests PRIVATE "${VNCUDA_DLINK_OBJ}")
     add_dependencies(VanNuemanTests vncuda_dlink)
@@ -985,6 +1001,15 @@ if(PYTHON_EXECUTABLE)
         COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/check_kernel_compat.py"
     )
     set_tests_properties(KernelCompatCheck PROPERTIES
+        FIXTURES_REQUIRED "kernel-compat"
+    )
+
+    # SPIR-V validation: compiles kernels with ugc, validates structural conformance
+    add_test(
+        NAME SPIRVToolchainCheck
+        COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/validate_dual_spirv.py"
+    )
+    set_tests_properties(SPIRVToolchainCheck PROPERTIES
         FIXTURES_REQUIRED "kernel-compat"
     )
 endif()
