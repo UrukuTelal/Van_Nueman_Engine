@@ -1,4 +1,4 @@
-// RUN: mlir-opt %s -verify-diagnostics -split-input-file
+// RUN: vn-mlir-opt %s -verify-diagnostics -split-input-file
 
 // Test 1: Basic lattice + cell_field round-trip
 // CHECK-LABEL: func @test_lattice_roundtrip
@@ -48,7 +48,7 @@ func.func @test_decay_roundtrip() -> tensor<4x4xf32> {
 // -----
 
 // Test 5: Verify diagnostics on bad lattice type
-// expected-error@+1 {{result must be a ranked tensor of !vnes.cell}}
+// expected-error@+2 {{element type must be !vnes.cell, got 'f32'}}
 func.func @test_bad_lattice() {
     %bad = "vnes.lattice"() : () -> tensor<4x4xf32>
     return
