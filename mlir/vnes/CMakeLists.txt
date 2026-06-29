@@ -149,3 +149,9 @@ add_test(NAME vn-mlir-opt-test-lowering
             "--pass-pipeline=builtin.module(func.func(vnes-lower-to-linalg))"
             ${CMAKE_CURRENT_SOURCE_DIR}/test/test_lower_to_linalg.mlir
             --split-input-file)
+
+add_test(NAME vn-mlir-opt-test-fuse-and-lower
+    COMMAND vn-mlir-opt
+            "--pass-pipeline=builtin.module(func.func(vnes-fuse-solvers, vnes-lower-to-linalg))"
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_fuse_and_lower.mlir
+            --split-input-file)
