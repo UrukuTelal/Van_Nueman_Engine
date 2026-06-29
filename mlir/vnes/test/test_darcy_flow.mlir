@@ -1,8 +1,8 @@
-// RUN: mlir-opt %s -load-pass-plugin=mlir-plugins/VNESMLIRDialect.dll -pass-pipeline="func.func(vnes-fuse-solvers)" -split-input-file | FileCheck %s
+// RUN: vn-mlir-opt %s -pass-pipeline="builtin.module(func.func(vnes-fuse-solvers))" -split-input-file | FileCheck %s
 
 // Basic test: a lattice with darcy flux + monod growth + decay
 // CHECK-LABEL: func @test_fuse_solvers
-func.func @test_fuse_solvers() -> tensor<f32> {
+func.func @test_fuse_solvers() -> tensor<16x16x16xf32> {
     %dim = arith.constant dense<[16, 16, 16]> : tensor<3xi32>
     %lattice = vnes.lattice tensor<16x16x16x!vnes.cell>
 

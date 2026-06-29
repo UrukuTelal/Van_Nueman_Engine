@@ -71,4 +71,60 @@ target_link_libraries(VNESMLIRTest
         MLIRParser
 )
 
+# Custom mlir-opt replacement that statically links VNES dialect
+# (avoids MSVC DLL TypeID boundary crash)
+add_executable(vn-mlir-opt
+    tools/vn_mlir_opt.cpp
+    ${VNES_MLIR_SOURCES}
+)
+
+target_include_directories(vn-mlir-opt
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib
+        ${MLIR_INCLUDE_DIRS}
+)
+
+target_link_libraries(vn-mlir-opt
+    PRIVATE
+        MLIRIR
+        MLIRSupport
+        MLIRPass
+        MLIRTransforms
+        MLIRRewrite
+        MLIRFuncDialect
+        MLIRAsmParser
+        MLIRArithDialect
+        MLIRParser
+        MLIRMlirOptMain
+)
+
+# DIA SDK diaguids.lib hardcoded path (LLVMExports.cmake) fix for non-Enterprise VS
+# The LLVM installed MLIR distribution embeds an absolute path to the DIA SDK at
+# C:/Program Files/Microsoft Visual Studio/2022/Enterprise/DIA SDK/lib/amd64/diaguids.lib
+# which doesn't exist when VS BuildTools is user-local. We override the link
+# library path when found at the user-local BuildTools location.
+if(WIN32 AND TARGET LLVMDebugInfoPDB)
+    find_library(DIAGUIDS_LIB diaguids.lib PATHS
+        "C:/Users/aobie/.vs/BuildTools/DIA SDK/lib/amd64"
+        "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/DIA SDK/lib/amd64"
+        "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/DIA SDK/lib/amd64"
+        "C:/Program Files/Microsoft Visual Studio/2022/Community/DIA SDK/lib/amd64"
+    )
+    if(DIAGUIDS_LIB)
+        message(STATUS "Found diaguids.lib: ${DIAGUIDS_LIB}")
+        get_target_property(LLVM_PDB_LIBS LLVMDebugInfoPDB INTERFACE_LINK_LIBRARIES)
+        if(LLVM_PDB_LIBS)
+            string(REPLACE
+                "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/DIA SDK/lib/amd64/diaguids.lib"
+                "${DIAGUIDS_LIB}"
+                LLVM_PDB_LIBS_FIXED "${LLVM_PDB_LIBS}")
+            set_target_properties(LLVMDebugInfoPDB PROPERTIES
+                INTERFACE_LINK_LIBRARIES "${LLVM_PDB_LIBS_FIXED}")
+        endif()
+    else()
+        message(WARNING "diaguids.lib not found — vn-mlir-opt may fail to link")
+    endif()
+endif()
+
 add_test(NAME VNESMLIRTest COMMAND VNESMLIRTest)
