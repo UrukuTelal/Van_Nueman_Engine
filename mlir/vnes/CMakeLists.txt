@@ -8,6 +8,7 @@ endif()
 set(VNES_MLIR_SOURCES
     lib/VNESDialect.cpp
     lib/VNESFuseSolversPass.cpp
+    lib/VNESLowerToLinalg.cpp
 )
 
 # Shared library plugin (loadable by mlir-opt --load-pass-plugin)
@@ -96,6 +97,9 @@ target_link_libraries(vn-mlir-opt
         MLIRAsmParser
         MLIRArithDialect
         MLIRParser
+        MLIRLinalgDialect
+        MLIRTensorDialect
+        MLIRLinalgTransforms
         MLIRMlirOptMain
 )
 
@@ -128,3 +132,20 @@ if(WIN32 AND TARGET LLVMDebugInfoPDB)
 endif()
 
 add_test(NAME VNESMLIRTest COMMAND VNESMLIRTest)
+
+# Test vn-mlir-opt on each test MLIR file
+add_test(NAME vn-mlir-opt-test-dialect
+    COMMAND vn-mlir-opt ${CMAKE_CURRENT_SOURCE_DIR}/test/test_vnes_dialect.mlir
+            --verify-diagnostics --split-input-file)
+
+add_test(NAME vn-mlir-opt-test-fusion
+    COMMAND vn-mlir-opt
+            "--pass-pipeline=builtin.module(func.func(vnes-fuse-solvers))"
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_darcy_flow.mlir
+            --split-input-file)
+
+add_test(NAME vn-mlir-opt-test-lowering
+    COMMAND vn-mlir-opt
+            "--pass-pipeline=builtin.module(func.func(vnes-lower-to-linalg))"
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_lower_to_linalg.mlir
+            --split-input-file)

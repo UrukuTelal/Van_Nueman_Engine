@@ -109,6 +109,7 @@ std::unique_ptr<Pass> vnes::createVnesFuseSolversPass() {
 
 void vnes::registerVNESPasses() {
   PassRegistration<VnesFuseSolversPass> reg;
+  vnes::registerVNESLowerToLinalgPass();
 }
 
 // ── Plugin Entry Point ──────────────────────────────────────────
